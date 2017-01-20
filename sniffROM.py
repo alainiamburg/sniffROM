@@ -1,6 +1,9 @@
 import argparse, csv, sys
-from matplotlib import mpl, pyplot
-import matplotlib.ticker as ticker
+#from matplotlib import mpl, pyplot
+#import matplotlib.ticker as ticker
+import matplotlib
+from matplotlib import pyplot
+from matplotlib import ticker
 import numpy as np
 
 ### Logic export csv file format:
@@ -423,9 +426,9 @@ if args.graph:
 	for row in range(0,mapping_rows):
 		mapping_bytes.append(mapping_image[row*GRAPH_BYTES_PER_ROW:(row*GRAPH_BYTES_PER_ROW)+GRAPH_BYTES_PER_ROW])	
 
-	cmap = mpl.colors.ListedColormap(['black','blue','red'])
+	cmap = matplotlib.colors.ListedColormap(['black','blue','red'])
 	bounds=[1,1,2,2]
-	norm = mpl.colors.BoundaryNorm(bounds, ncolors=3)
+	norm = matplotlib.colors.BoundaryNorm(bounds, ncolors=3)
 	fig = pyplot.figure()
 	fig.canvas.set_window_title('Binary Visualization')
 	pyplot.imshow(mapping_bytes,interpolation='nearest',cmap=cmap,norm=norm,aspect='auto')	
