@@ -4,9 +4,15 @@ import matplotlib.ticker as ticker
 import numpy as np
 
 ### Logic export csv file format:
+## SPI
+#   Time [s],Packet ID,MOSI,MISO
+# 0.21347662,        0,0x05,0xFF
 
-#   Time [s], Packet ID, MOSI, MISO
-# 0.21347662,         0, 0x05, 0xFF
+## I2C
+#           Time [s],Packet ID,Address,Data,Read/Write,ACK/NAK
+# 46.089097500000001,        0,   0xA0,0x00,     Write,    ACK
+# 46.089121259999999,        0,   0xA0,0x7A,     Write,    ACK
+# 46.089176700000003,        1,   0xA1,0xA5,     Read,     ACK
 
 
 FLASH_PADDED_SIZE = 20000000     # hacky flash image start size, make this better. auto detect chip size (via JEDEC ID) and adjust accordingly?
@@ -14,7 +20,8 @@ FLASH_FILL_BYTE = 0xFF
 FLASH_ENDING_SIZE = FLASH_WRITES_ENDING_SIZE = FLASH_PADDED_SIZE
 GRAPH_BYTES_PER_ROW = 2048
 
-commands = {
+
+spi_commands = {
 	0x00:"No Operation",
 	0x01:"Write Status Register 1",
 	0x02:"Page Program",
@@ -67,7 +74,7 @@ commands = {
 	0xE8:"Password Program",
 	0xE9:"Password Unlock"}
 
-command_stats = {
+spi_command_stats = {
 	0x00:0,
 	0x01:0,
 	0x02:0,
@@ -132,23 +139,22 @@ def plot_func(x, pos):
 	s = '0x%06x' % (int(x)*GRAPH_BYTES_PER_ROW)
 	return s
 
-
-def print_data(offset):
+def print_data(data, addr):
 	if offset <= 4:
-		bargraph = "[\033[32;40m*\033[0m-----]"
+		bargraph = "[\033[32;49m*\033[0m-----]"
 	elif offset <= 8:
-		bargraph = "[\033[32;40m**\033[0m----]"
+		bargraph = "[\033[32;49m**\033[0m----]"
 	elif offset <= 16:
-		bargraph = "[\033[33;40m***\033[0m---]"
+		bargraph = "[\033[33;49m***\033[0m---]"
 	elif offset <= 32:
-		bargraph = "[\033[33;40m****\033[0m--]"
+		bargraph = "[\033[33;49m****\033[0m--]"
 	elif offset <= 64:
-		bargraph = "[\033[31;40m*****\033[0m-]"
+		bargraph = "[\033[31;49m*****\033[0m-]"
 	elif offset > 64:
-		bargraph = "[\033[31;40m******\033[0m]"
+		bargraph = "[\033[31;49m******\033[0m]"
 		
 	print ' {0} {1} bytes'.format(bargraph, offset)
-	dump(str(flash_image[address:address+offset]), 16, address)
+	dump(str(data), 16, addr)
 						
 
 parser = argparse.ArgumentParser(description="sniffROM - Reconstructs flash memory contents from passively captured READ/WRITE commands in a Saleae logic analyzer exported capture file. Currently supports SPI flash chips.")
@@ -173,41 +179,95 @@ bytes_sniffed_written = 0
 unknown_commands = 0
 jedec_id = bytearray([0x00] * 5)
 device_id = 0x00
-address_bytes = bytearray([0x00] * args.addrlen)
+i2c_read_addr = 0x00
+i2c_write_addr = 0x00
 
 with open(args.input_file, 'rb') as infile:
 	packets = csv.reader(infile)
+	header = packets.next()
+	if header[2] == "MOSI":
+		chip_type = "SPI"
+		address_bytes = bytearray([0x00] * args.addrlen)
+	elif header[2] == "Address":
+		chip_type = "I2C"
+		address_bytes = bytearray([0x00] * 2)
+	else:
+		print 'Unrecognized input file. Exiting.'
+		exit()
+	print "Parsing {0} data...".format(chip_type)
 	for packet in packets:
-		if packet[1].isdigit():                # ignores the first header line
-			packet_time = float(packet[0])
-			new_packet_id = int(packet[1])
+		packet_time = float(packet[0])
+		new_packet_id = int(packet[1])
+		if chip_type == "I2C":
+			i2c_addr = int(packet[2], 16)
+			sdl_data = int(packet[3], 16)
+			new_command = packet[4]
+			ack_or_nak = packet[5]
+
+			if new_packet_id > packet_id:
+				if offset > 0:
+					if args.v > 1:  # TODO this should probably print after each new Packet ID, but you have to deal with offsets differently
+						#print_data(offset)  #flash_image[address:address+offset]
+						print_data(flash_image[address:address+offset], address)  #flash_image[address:address+offset]
+						address = address + offset
+						offset = 0
+
+				packet_id = new_packet_id
+				curr_addr_byte = 0
+
+			if new_command == "Write":
+				addr_byte = sdl_data      # assume writing start addr for subsequent read cmd
+				i2c_write_addr = i2c_addr
+				address_bytes[curr_addr_byte] = addr_byte
+				if curr_addr_byte == 1:
+					address = (address_bytes[0] << 8) + (address_bytes[1])
+					if args.v > 0:
+						print 'Time: {0:.8f}   Packet ID: {1:5}   Read Data @ 0x{2:02x}'.format(packet_time, packet_id, address)
+				else:
+					curr_addr_byte += 1
+			elif new_command == "Read":
+				read_byte = sdl_data
+				i2c_read_addr = i2c_addr
+				if flash_image[address+offset] != FLASH_FILL_BYTE:
+					if args.v > 2:
+						print ' [*] Memory address 0x{:02x} may have been accessed more than once. Perhaps it is important?'.format(address+offset)
+				else:
+					bytes_sniffed += 1
+
+				flash_image[address+offset] = read_byte
+				if mapping_image[address+offset] != 2:
+					mapping_image[address+offset] = 1
+				offset += 1
+				
+		elif chip_type == "SPI":
 			mosi_data = int(packet[2], 16)
 			miso_data = int(packet[3], 16)
-			
+		
 			if new_packet_id > packet_id:      # IF WE GOT A NEW COMMAND INSTANCE (new Packet ID according to Saleae SPI analyzer)
 				if offset > 0:                 # the new packet ID tells us the last command is finished, so dump remaining data from last command, if any
 					if args.v > 1:
-						print_data(offset)
+						#print_data(offset)
+						print_data(flash_image[address:address+offset], address)
 						offset = 0
-				
+			
 				packet_id = new_packet_id
 				new_command = mosi_data
-				curr_byte = 0
+				curr_id_byte = 0
 				curr_addr_byte = 0
 				offset = 0
 				dummy_byte_fastread = True
 				dummy_bytes_rpddid = 0
-				
-				if not (new_command in commands):
+			
+				if not (new_command in spi_commands):
 					unknown_commands += 1
 					command = 0x00
 					if args.v > 0:
-						print 'Time: {0:.8f}   Packet ID: {1:5}  Command: 0x{2:02x} - Unknown'.format(packet_time, packet_id, new_command)
+						print 'Time: {0:.8f}   Packet ID: {1:5}   Command: 0x{2:02x} - Unknown'.format(packet_time, packet_id, new_command)
 				else:
 					command = new_command
-					command_stats[command] += 1
+					spi_command_stats[command] += 1
 					if args.v > 0:
-						print 'Time: {0:.8f}   Packet ID: {1:5}  Command: 0x{2:02x} - {3}'.format(packet_time, packet_id, command, commands[command])
+						print 'Time: {0:.8f}   Packet ID: {1:5}   Command: 0x{2:02x} - {3}'.format(packet_time, packet_id, command, spi_commands[command])
 
 			elif command == 0x03:              # Read command
 				read_byte = miso_data          # the data in a read command comes on MISO
@@ -215,9 +275,9 @@ with open(args.input_file, 'rb') as infile:
 				if (args.filter == 'r' or args.filter == 'rw'):
 					if curr_addr_byte == args.addrlen:  # we have the whole address. read data
 						if args.endian == "msb":   # TODO add if else for different address byte lengths
-							address = (address_bytes[0] << 16) + (address_bytes[1] << 8) + (address_bytes[2] << 0)
+							address = (address_bytes[0] << 16) + (address_bytes[1] << 8) + (address_bytes[2])# << 0)
 						elif args.endian == "lsb":
-							address = (address_bytes[2] << 16) + (address_bytes[1] << 8) + (address_bytes[0] << 0)
+							address = (address_bytes[2] << 16) + (address_bytes[1] << 8) + (address_bytes[0])# << 0)
 
 						if flash_image[address+offset] != FLASH_FILL_BYTE:    # hacky way to check for multiple access to this addr
 							if args.v > 2:
@@ -276,15 +336,16 @@ with open(args.input_file, 'rb') as infile:
 						else:
 							bytes_sniffed += 1
 
-						flash_image_fromWrites[address+offset] = write_byte    # this holds write data separately
-						flash_image[address+offset] = write_byte
-						bytes_sniffed_written += 1
-						mapping_image[address+offset] = 2
-						offset += 1
+							flash_image_fromWrites[address+offset] = write_byte    # this holds write data separately
+							flash_image[address+offset] = write_byte
+							bytes_sniffed_written += 1
+							mapping_image[address+offset] = 2
+							offset += 1
 					else:   # get the address
 						address_bytes[curr_addr_byte] = addr_byte
 						curr_addr_byte += 1	
 			elif command == 0xab:           # Release Power-Down / Device ID command
+				#print 'hi'
 				read_byte = miso_data
 				if dummy_bytes_rpddid == 3:    # If this command is followed by 3 dummy bytes,
 					device_id = read_byte      #  then it is a Device ID command
@@ -294,16 +355,17 @@ with open(args.input_file, 'rb') as infile:
 					dummy_bytes_rpddid += 1
 			elif command == 0x9f:           # read JEDEC ID command (1 byte MFG ID, and 1-3 byte Device ID)
 				read_byte = miso_data
-				if curr_byte <= 3:
-					jedec_id[curr_byte] = read_byte
-					curr_byte += 1
+				if curr_id_byte <= 3:
+					jedec_id[curr_id_byte] = read_byte
+					curr_id_byte += 1
 				else:
 					if args.v > 0:
 						print ' [+] Manufacturer ID: {0}'.format(hex(jedec_id[0]))
 						print ' [+] Device ID: {0} {1}'.format(hex(jedec_id[1]), hex(jedec_id[2]))
 	if offset > 0:    # this is here again to catch the very last command. otherwise we leave the for loop without having a chance to print this. kind of ugly.
 		if args.v > 1:
-			print_data(offset)
+			#print_data(offset)
+			print_data(flash_image[address:address+offset], address+offset)
 			offset = 0
 
 	print 'Finished parsing input file'
@@ -334,19 +396,26 @@ if args.summary:
 		print 'Device ID: {0} {1}\n'.format(hex(jedec_id[1]), hex(jedec_id[2]))
 	if device_id:
 		print 'Device ID: {0}\n'.format(hex(device_id))
-	print '+---------+-----------+-----------------------------------------------------------+'
-	print '| Command | Instances | Description                                               |'
-	print '+---------+-----------+-----------------------------------------------------------+'
-	for command in command_stats:
-		if command_stats[command] > 0:
-			print "| 0x{0:02x}    | {1:9} | {2:57} |".format(command, command_stats[command], commands[command])
-	if unknown_commands > 0:
-		print "| Unknown | {0:9} |                                                           |".format(unknown_commands)
-	print '+---------+-----------+-----------------------------------------------------------+'
+	if i2c_read_addr:
+		print 'I2C Read Address: {0}'.format(hex(i2c_read_addr))
+	if i2c_write_addr:
+		print 'I2C Write Address: {0}\n'.format(hex(i2c_write_addr))
+	if chip_type == "SPI":	
+		print '+---------+-----------+-----------------------------------------------------------+'
+		print '| Command | Instances | Description                                               |'
+		print '+---------+-----------+-----------------------------------------------------------+'
+		for command in spi_command_stats:
+			if spi_command_stats[command] > 0:
+				print "| 0x{0:02x}    | {1:9} | {2:57} |".format(command, spi_command_stats[command], spi_commands[command])
+		if unknown_commands > 0:
+			print "| Unknown | {0:9} |                                                           |".format(unknown_commands)
+		print '+---------+-----------+-----------------------------------------------------------+'
 
 
 if args.graph:
 	print '\nGenerating Graph...'
+	if chip_type == "I2C":
+		GRAPH_BYTES_PER_ROW = 512
 	mapping_bytes = []
 	mapping_rows = FLASH_ENDING_SIZE / GRAPH_BYTES_PER_ROW
 	mapping_remainder = FLASH_ENDING_SIZE % GRAPH_BYTES_PER_ROW
@@ -357,10 +426,13 @@ if args.graph:
 	cmap = mpl.colors.ListedColormap(['black','blue','red'])
 	bounds=[1,1,2,2]
 	norm = mpl.colors.BoundaryNorm(bounds, ncolors=3)
-	pyplot.imshow(mapping_bytes,interpolation='nearest',cmap=cmap,norm=norm,aspect='auto')
+	fig = pyplot.figure()
+	fig.canvas.set_window_title('Binary Visualization')
+	pyplot.imshow(mapping_bytes,interpolation='nearest',cmap=cmap,norm=norm,aspect='auto')	
 	pyplot.ylabel('Address')
 	pyplot.xlabel('Offset')
 	pyplot.grid(True,color='white')
+	#pyplot.title('Binary Visualization')
 	axes = pyplot.gca()
 	axes.get_xaxis().set_major_formatter(ticker.FormatStrFormatter("0x%04x"))
 	axes.get_yaxis().set_major_formatter(ticker.FuncFormatter(plot_func))
