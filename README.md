@@ -54,3 +54,5 @@ Command 0x9f: 0 instances (Read JEDEC ID)
 $ wc -c spiflash_out.bin 
 664784 spiflash_out.bin
 ```
+
+Reference: https://www.optiv.com/blog/demystifying-hardware-security-part-ii
