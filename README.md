@@ -35,4 +35,4 @@ Command 0x5a: 0 instances (Read Serial Flash Discoverable Parameters (SFDP) Regi
 Command 0x9f: 0 instances (Read JEDEC ID)
 
 $ wc -c spiflash_out.bin 
-  664784 spiflash_out.bin
+664784 spiflash_out.bin
