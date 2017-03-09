@@ -55,5 +55,5 @@ $ wc -c spiflash_out.bin
 664784 spiflash_out.bin
 ```
 
-Reference: https://www.optiv.com/blog/demystifying-hardware-security-part-ii
+Reference: https://www.optiv.com/blog/demystifying-hardware-security-part-ii <br>
 JEDEC Manufacturer IDs: http://www.idhw.com/textual/chip/jedec_spd_man.html
