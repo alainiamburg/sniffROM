@@ -47,7 +47,7 @@ command_stats = {
 	0x5A:0,
 	0x90:0,
 	0x9F:0,
-	0xAB:0,}	
+	0xAB:0}	
 
 
 def dump(data, length, addr):
@@ -84,7 +84,7 @@ FLASH_ENDING_SIZE = FLASH_WRITES_ENDING_SIZE = FLASH_PADDED_SIZE
 
 
 # parser = argparse.ArgumentParser(prog='PROG', usage='%(prog)s [options]')
-parser = argparse.ArgumentParser(description="sniffROM - Reconstructs flash memory contents from passively captured READ/WRITE commands in a Saleae logic analyzer exported capture file.")
+parser = argparse.ArgumentParser(description="sniffROM - Reconstructs flash memory contents from passively captured READ/WRITE commands in a Saleae logic analyzer exported capture file. Currently supports SPI flash chips.")
 parser.add_argument("input_file", help="Saleae Logic SPI Analyzer Export File (.csv)")
 parser.add_argument("--addrlen", type=int, choices=[2,3], nargs="?", default=3, help="Length of address in bytes (default is 3)")
 parser.add_argument("--endian", choices=["msb", "lsb"], nargs="?", default="msb", help="Endianness of address bytes (default is msb first)")
@@ -139,7 +139,11 @@ with open(args.input_file, 'rb') as infile:
 						
 				curr_packet_id = new_pkt_id
 				command = mosi_data
-				command_stats[command] += 1
+				if not (command in commands):
+					if args.verbose > 1:
+						print 'Unknown command: {0}'.format(hex(command))
+				else:
+					command_stats[command] += 1
 				
 				if command == 0x03:   # New Read command, so reset address and offset in prep for incoming data
 					curr_addr_byte = 0
@@ -149,6 +153,9 @@ with open(args.input_file, 'rb') as infile:
 					curr_addr_byte = 0
 					address_bytes = bytearray([0x00] * args.addrlen)
 					offset = 0
+				elif command == 0x9f:   # Read ID command
+					device_id = bytearray([0x00] * 3)
+					curr_byte = 0
 				
 				if args.verbose > 0:
 					if command in commands:
@@ -189,7 +196,16 @@ with open(args.input_file, 'rb') as infile:
 					else:   # get the address
 						#print 'curr_addr_byte is {0}'.format(curr_addr_byte)
 						address_bytes[curr_addr_byte] = mosi_data
-						curr_addr_byte += 1						
+						curr_addr_byte += 1	
+			elif command == 0x9f:  # read ID command
+				miso_data = int(row[3], 16)
+				device_id[curr_byte] = miso_data
+				if curr_byte < 2:
+					curr_byte += 1
+				else:
+					print '[+] Manufacturer ID: {0}'.format(hex(device_id[0]))
+					print '[+] Device ID: {0} {1}'.format(hex(device_id[1]), hex(device_id[2]))
+					print '[+] Look these up here: http://www.idhw.com/textual/chip/jedec_spd_man.html'
 	
 	# this is here again to catch the very last command. otherwise we leave the for
 	# loop without having a chance to print this. kind of ugly. turn this into a function?
