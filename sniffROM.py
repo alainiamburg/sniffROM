@@ -84,7 +84,7 @@ FLASH_ENDING_SIZE = FLASH_WRITES_ENDING_SIZE = FLASH_PADDED_SIZE
 
 
 # parser = argparse.ArgumentParser(prog='PROG', usage='%(prog)s [options]')
-parser = argparse.ArgumentParser(description="sniffROM - Reconstructs flash memory contents from passively captured READ/WRITE commands in a Saleae logic analyzer exported capture file. Currently supports SPI flash chips.")
+parser = argparse.ArgumentParser(description="sniffROM - Reconstructs flash memory contents from passively captured READ/WRITE commands in a Saleae logic analyzer exported capture file.")
 parser.add_argument("input_file", help="Saleae Logic SPI Analyzer Export File (.csv)")
 parser.add_argument("--addrlen", type=int, choices=[2,3], nargs="?", default=3, help="Length of address in bytes (default is 3)")
 parser.add_argument("--endian", choices=["msb", "lsb"], nargs="?", default="msb", help="Endianness of address bytes (default is msb first)")
