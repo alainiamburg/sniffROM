@@ -7,8 +7,8 @@ Features:
 
 Example:
 Probe a SPI flash chip in a device, and take a Saleae Logic capture during device boot-up. Export SPI analyzer in CSV.
-
-$ python sniffROM.py -o spiflash_out.bin --summary spansion_spiflash_onboot.csv 
+'''
+$ **python sniffROM.py -o spiflash_out.bin --summary spansion_spiflash_onboot.csv**
 Finished parsing input file
 
 Trimming pad bytes...
@@ -36,3 +36,4 @@ Command 0x9f: 0 instances (Read JEDEC ID)
 
 $ wc -c spiflash_out.bin 
 664784 spiflash_out.bin
+'''
