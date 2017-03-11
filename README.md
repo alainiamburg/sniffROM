@@ -24,6 +24,9 @@ optional arguments:
 ```
 Examples:
 Probe a SPI flash chip in a device, and take a Saleae Logic capture during device boot-up. Export SPI analyzer in CSV.
+
+<br>
+1)
 ```
 $ python sniffROM.py -o spiflash_out.bin --summary spansion_spiflash_onboot.csv
 Finished parsing input file
@@ -54,7 +57,8 @@ Command 0x9f: 0 instances (Read JEDEC ID)
 $ wc -c spiflash_out.bin 
 664784 spiflash_out.bin
 ```
-
+<br>
+2)
 ```
 $ python sniffROM.py -o spiflash_out.bin --summary winbond_spiflash_onboot.csv 
 Finished parsing input file
