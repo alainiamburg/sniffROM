@@ -1,15 +1,10 @@
 import argparse, csv, sys
 
 ### Logic export csv file format:
+
 #   Time [s], Packet ID, MOSI, MISO
 # 0.21347662,         0, 0x05, 0xFF
 
-# TODO
-# -add warning when a sniffed memory address is accessed more than once (read or write)
-# -support multiple address lengths (SPI_ADDRLEN)
-# -parse device ID data
-# -support more commands
-# -allow filtering by command
 
 
 
