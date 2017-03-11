@@ -101,6 +101,7 @@ new_packet_id = 0
 offset = 0
 bytes_sniffed = 0
 bytes_sniffed_written = 0
+unknown_commands = 0
 
 
 with open(args.input_file, 'rb') as infile:
@@ -140,8 +141,7 @@ with open(args.input_file, 'rb') as infile:
 				curr_packet_id = new_pkt_id
 				command = mosi_data
 				if not (command in commands):
-					if args.verbose > 1:
-						print 'Unknown command: {0}'.format(hex(command))
+					unknown_commands += 1
 				else:
 					command_stats[command] += 1
 				
@@ -157,11 +157,12 @@ with open(args.input_file, 'rb') as infile:
 					device_id = bytearray([0x00] * 3)
 					curr_byte = 0
 				
-				if args.verbose > 0:
-					if command in commands:
+				if command in commands:
+					if args.verbose > 0:
 						print 'Time: {0:.9}   Packet ID: {1:5}  Command: {2} - {3}'.format(row[0], row[1], row[2], commands[command])
-					else:
-						print 'Time: {0:.9}   Packet ID: {1:5}  Command: {2}'.format(row[0], row[1], row[2])
+				else:
+					if args.verbose > 1:
+						print 'Time: {0:.9}   Packet ID: {1:5}  Command: {2} - Unknown'.format(row[0], row[1], row[2])
 						
 						
 			elif command == 0x03:        # We are in the middle of a Read command (currently receiving data)
@@ -199,13 +200,14 @@ with open(args.input_file, 'rb') as infile:
 						curr_addr_byte += 1	
 			elif command == 0x9f:  # read ID command
 				miso_data = int(row[3], 16)
-				device_id[curr_byte] = miso_data
-				if curr_byte < 2:
+				if curr_byte <= 2:
+					device_id[curr_byte] = miso_data
 					curr_byte += 1
 				else:
-					print '[+] Manufacturer ID: {0}'.format(hex(device_id[0]))
-					print '[+] Device ID: {0} {1}'.format(hex(device_id[1]), hex(device_id[2]))
-					print '[+] Look these up here: http://www.idhw.com/textual/chip/jedec_spd_man.html'
+					if args.verbose > 0:
+						print '[+] Manufacturer ID: {0}'.format(hex(device_id[0]))
+						print '[+] Device ID: {0} {1}'.format(hex(device_id[1]), hex(device_id[2]))
+						print '[+] Look these up here: http://www.idhw.com/textual/chip/jedec_spd_man.html'
 	
 	# this is here again to catch the very last command. otherwise we leave the for
 	# loop without having a chance to print this. kind of ugly. turn this into a function?
@@ -257,5 +259,9 @@ print 'Rebuilt image: {0} bytes (saved to {1})\nCaptured data: {2} bytes ({3:.2f
 
 if args.summary:
 	print '\nSummary:'
+	if device_id[0]:
+		print 'Manufacturer ID: {0}'.format(hex(device_id[0]))
+		print 'Device ID: {0} {1}'.format(hex(device_id[1]), hex(device_id[2]))
 	for command in command_stats:
 		print "Command 0x{0:02x}: {1} instances ({2})".format(command, command_stats[command], commands[command])
+	print "Unknown Commands: {0}".format(unknown_commands)
