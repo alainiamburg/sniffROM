@@ -6,7 +6,7 @@ Features:
 * Currently supports SPI flash chips.
 ```
 usage: sniffROM.py [-h] [--addrlen [{2,3}]] [--endian [{msb,lsb}]]
-                   [--filter [{r,w,rw}]] [-o [O]] [--summary] [--verbose]
+                   [--filter [{r,w,rw}]] [-o [O]] [--summary] [-v]
                    input_file
 
 positional arguments:
@@ -20,7 +20,7 @@ optional arguments:
                         is rw)
   -o [O]                Output binary image file (default is output.bin)
   --summary             Also dump statistics
-  --verbose, -v         Increase verbosity
+  -v                    Increase verbosity (up to -vvv)
 ```
 Examples:
 Probe a SPI flash chip in a device, and take a Saleae Logic capture during device boot-up. Export SPI analyzer in CSV.
