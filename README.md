@@ -25,7 +25,6 @@ optional arguments:
 Examples:
 Probe a SPI flash chip in a device, and take a Saleae Logic capture during device boot-up. Export SPI analyzer in CSV.
 
-<br>
 1)
 ```
 $ python sniffROM.py -o spiflash_out.bin --summary spansion_spiflash_onboot.csv
@@ -55,9 +54,9 @@ Command 0x5a: 0 instances (Read Serial Flash Discoverable Parameters (SFDP) Regi
 Command 0x9f: 0 instances (Read JEDEC ID)
 
 $ wc -c spiflash_out.bin 
-664784 spiflash_out.bin
+ 664784 spiflash_out.bin
 ```
-<br>
+
 2)
 ```
 $ python sniffROM.py -o spiflash_out.bin --summary winbond_spiflash_onboot.csv 
@@ -91,5 +90,6 @@ Command 0x9f: 2 instances (Read JEDEC ID)
 $ wc -c spiflash_out.bin 
  16777216 spiflash_out.bin
 ```
+
 Reference: https://www.optiv.com/blog/demystifying-hardware-security-part-ii <br>
 JEDEC Manufacturer IDs: http://www.idhw.com/textual/chip/jedec_spd_man.html
