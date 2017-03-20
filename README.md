@@ -31,7 +31,7 @@ $ python sniffROM.py -o spiflash_out.bin --summary spansion_spiflash_onboot.csv
 Finished parsing input file
 Trimming pad bytes...
 
-Rebuilt image: 664784 bytes (saved to output.bin)
+Rebuilt image: 664784 bytes (saved to spiflash_out.bin)
 Captured data: 234598 bytes (35.29%) (46 bytes from WRITE commands)
 
 Summary:
@@ -67,7 +67,7 @@ $ python sniffROM.py -o spiflash_out.bin --summary winbond_spiflash_onboot.csv
 Finished parsing input file
 Trimming pad bytes...
 
-Rebuilt image: 16777216 bytes (saved to output.bin)
+Rebuilt image: 16777216 bytes (saved to spiflash_out.bin)
 Captured data: 7827748 bytes (46.66%) (214 bytes from WRITE commands)
 
 Summary:
