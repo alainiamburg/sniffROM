@@ -25,8 +25,7 @@ commands = {
 	0x50:"Write Enable for Volatile Status Register",
 	0x5A:"Read Serial Flash Discoverable Parameters (SFDP) Register",
 	0x90:"Read Manufacturer/Device ID",
-	0x9F:"Read JEDEC ID",
-	0xAB:"Read Device ID"}
+	0x9F:"Read JEDEC ID"}
 
 command_stats = {
 	0x01:0,
@@ -43,8 +42,7 @@ command_stats = {
 	0x50:0,
 	0x5A:0,
 	0x90:0,
-	0x9F:0,
-	0xAB:0}	
+	0x9F:0}	
 
 def dump(data, length, addr):
 	hex = lambda line: ' '.join('{:02x}'.format(b) for b in map(ord, line))
@@ -90,7 +88,7 @@ offset = 0
 bytes_sniffed = 0
 bytes_sniffed_written = 0
 unknown_commands = 0
-
+jedec_id = bytearray([0x00] * 5)
 
 with open(args.input_file, 'rb') as infile:
 	packets = csv.reader(infile)
@@ -126,12 +124,12 @@ with open(args.input_file, 'rb') as infile:
 					address_bytes = bytearray([0x00] * args.addrlen)
 					offset = 0
 				elif new_command == 0x9f:      # Read ID command
-					jedec_id = bytearray([0x00] * 5)   # from 3 to 5
+					#jedec_id = bytearray([0x00] * 5)   # from 3 to 5
 					curr_byte = 0
 
 			elif command == 0x03:              # We are in the middle of a Read command (currently receiving data)
-				read_data = miso_data          # the data in a read command comes on MISO
-				addr_data = mosi_data
+				read_byte = miso_data          # the data in a read command comes on MISO
+				addr_byte = mosi_data
 				if (args.filter == 'r' or args.filter == 'rw'):
 					if curr_addr_byte == args.addrlen:  # we have the whole address. read data starting with this packet
 						if args.endian == "msb":   # TODO add if else for different address byte lengths
@@ -141,15 +139,15 @@ with open(args.input_file, 'rb') as infile:
 						if args.v > 2:
 							if flash_image[address+offset] != FLASH_FILL_BYTE:    # hacky way to check for multiple access to this addr
 								print ' [*] Memory address 0x{:02x} may have been accessed more than once. Perhaps it is important?'.format(address+offset)
-						flash_image[address+offset] = read_data
+						flash_image[address+offset] = read_byte
 						offset += 1
 						bytes_sniffed += 1
 					else:   # get the address
-						address_bytes[curr_addr_byte] = addr_data
+						address_bytes[curr_addr_byte] = addr_byte
 						curr_addr_byte += 1
 			elif command == 0x02:	      # we are in a page program (write) command
-				write_data = mosi_data    # the data and addr in a write command goes on MOSI
-				addr_data = mosi_data
+				write_byte = mosi_data    # the data and addr in a write command goes on MOSI
+				addr_byte = mosi_data
 				if (args.filter == 'w' or args.filter == 'rw'):
 					if curr_addr_byte == args.addrlen:  # we have the whole address. read data starting with this packet
 						if args.endian == "msb":
@@ -159,18 +157,18 @@ with open(args.input_file, 'rb') as infile:
 						if args.v > 2:
 							if flash_image[address+offset] != FLASH_FILL_BYTE:    # hacky way to check for multiple access to this addr
 								print ' [*] Memory address 0x{:02x} may have been accessed more than once. Perhaps it is important?'.format(address+offset)
-						flash_image_fromWrites[address+offset] = write_data    # this holds write data separately
-						flash_image[address+offset] = write_data
+						flash_image_fromWrites[address+offset] = write_byte    # this holds write data separately
+						flash_image[address+offset] = write_byte
 						offset += 1
 						bytes_sniffed_written += 1
 						bytes_sniffed += 1
 					else:   # get the address
-						address_bytes[curr_addr_byte] = addr_data
+						address_bytes[curr_addr_byte] = addr_byte
 						curr_addr_byte += 1	
 			elif command == 0x9f:           # read ID command
-				read_data = miso_data
+				read_byte = miso_data
 				if curr_byte <= 3:
-					jedec_id[curr_byte] = read_data
+					jedec_id[curr_byte] = read_byte
 					curr_byte += 1
 				else:
 					if args.v > 0:
@@ -185,7 +183,7 @@ with open(args.input_file, 'rb') as infile:
 	print 'Finished parsing input file'
 
 # trim extra padding bytes (might lose valid data - if so edit FLASH_FILL_BYTE). this assumes last byte is a padding byte
-print '\nTrimming pad bytes...\n'
+print 'Trimming pad bytes...\n'
 while ((flash_image[FLASH_ENDING_SIZE-1] == FLASH_FILL_BYTE) and (FLASH_ENDING_SIZE > 0)):
 	FLASH_ENDING_SIZE -= 1
 	
@@ -201,13 +199,23 @@ except:
 	print 'Failed to write the output file'
 
 print 'Rebuilt image: {0} bytes (saved to {1})\nCaptured data: {2} bytes ({3:.2f}%) ({4} bytes from WRITE commands)'.format(
-								FLASH_ENDING_SIZE, args.o, bytes_sniffed, ((bytes_sniffed / float(FLASH_ENDING_SIZE)) * 100.0), bytes_sniffed_written)
+						FLASH_ENDING_SIZE, args.o, bytes_sniffed, ((bytes_sniffed / float(FLASH_ENDING_SIZE)) * 100.0), bytes_sniffed_written)
 
 if args.summary:
-	print '\nSummary:'
+	print '\nSummary:\n'
 	if jedec_id[0]:
+		#print '+---------+-----------+'#-------------+'
+		#print '| Mfg. ID | Device ID |'# Description |'
+		#print '+---------+-----------+'#-------------+'
+		#print '| {0}    | {1} {2} |'.format(hex(jedec_id[0]), hex(jedec_id[1]), hex(jedec_id[2]))
+		#print '+---------+-----------+\n'#-------------+\n'
 		print 'Manufacturer ID: {0}'.format(hex(jedec_id[0]))
-		print 'Device ID: {0} {1}'.format(hex(jedec_id[1]), hex(jedec_id[2]))
+		print 'Device ID: {0} {1}\n'.format(hex(jedec_id[1]), hex(jedec_id[2]))
+	print '+---------+-----------+-----------------------------------------------------------+'
+	print '| Command | Instances | Description                                               |'
+	print '+---------+-----------+-----------------------------------------------------------+'
 	for command in command_stats:
-		print "Command 0x{0:02x}: {1} instances ({2})".format(command, command_stats[command], commands[command])
-	print "Unknown Commands: {0}".format(unknown_commands)
+		#print "Command 0x{0:02x}: {1} instances ({2})".format(command, command_stats[command], commands[command])
+		print "| 0x{0:02x}    | {1:9} | {2:57} |".format(command, command_stats[command], commands[command])
+	print "| Unknown | {0:9} |                                                           |".format(unknown_commands)
+	print '+---------+-----------+-----------------------------------------------------------+'
