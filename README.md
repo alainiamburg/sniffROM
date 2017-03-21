@@ -165,7 +165,7 @@ Device ID: 0x40 0x18
 $ wc -c spiflash_out.bin 
  16777216 spiflash_out.bin
 ```
-3) Winbond W25Q64FW
+3) Winbond W25Q64FW (Linksys E800)
 ```
 $ python sniffROM.py -o spiflash_out.bin --summary winbond2_spiflash_onboot.csv
 Finished parsing input file
