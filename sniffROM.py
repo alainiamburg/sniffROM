@@ -11,21 +11,53 @@ FLASH_FILL_BYTE = 0xFF
 FLASH_ENDING_SIZE = FLASH_WRITES_ENDING_SIZE = FLASH_PADDED_SIZE
 
 commands = {
-	0x01:"Write Status Register",
+	0x01:"Write Status Register 1",
 	0x02:"Page Program",
 	0x03:"Read Data",
 	0x04:"Write Disable",
 	0x05:"Read Status Register 1",
 	0x06:"Write Enable",
+	0x07:"Read Status Register 2",
 	0x0B:"Fast Read",
+	0x11:"Write Status Register 3",
+	0x12:"Page Program (4-byte address)",
+	0x13:"Read Data (4-byte address)",
+	0x14:"AutoBoot Register Read",
+	0x15:"AutoBoot Register Write",    # or Read Status Register 3
+	0x16:"Bank Register Read",
+	0x17:"Bank Register Write",
+	0x20:"Sector Erase (4K)",
+	0x2B:"Read Advanced Sector Protection (ASP)",
+	0x2F:"Program Advanced Sector Protection (ASP)",
+	0x32:"Page Program (Quad I/O)",
 	0x33:"Read Status Register 3",
-	0x35:"Read Status Register 2",
-	0x42:"Program Security Registers",
-	0x48:"Read Security Registers",
+	0x34:"Page Program (Quad I/O, 4-byte address)",
+	0x35:"Read Status Register 2",   # or Read Configuration Register 1
+	0x38:"Page Program (Quad I/O)",
+	0x52:"Block Erase (32KB)",
+	0xD8:"Block Erase (64KB)",
+	0x42:"Program Security Register / One Time Program (OTP) array",
+	0x48:"Read Security Register",
+	0x4B:"Read Unique ID / One Time Program (OTP) Array",
 	0x50:"Write Enable for Volatile Status Register",
 	0x5A:"Read Serial Flash Discoverable Parameters (SFDP) Register",
-	0x90:"Read Manufacturer/Device ID",
-	0x9F:"Read JEDEC ID"}
+	0x60:"Chip Erase",
+	0x66:"Enable Reset",
+	0xC7:"Chip Erase",
+	0x90:"Read Manufacturer ID / Device ID",
+	0x92:"Read Manufacturer ID / Device ID (Dual I/O)",
+	0x94:"Read Manufacturer ID / Device ID (Quad I/O)",
+	0x99:"Reset Device",
+	0x9F:"Read JEDEC ID",
+	0xAB:"Read Electronic Signature / ID",
+	0xE0:"Read Dynamic Protection Bit (DYB)",
+	0xE1:"Write Dynamic Protection Bit (DYB)",
+	0xE2:"Read Persistent Protection Bit (PPB)",
+	0xE3:"Program Persistent Protection Bit (PPB)",
+	0xE4:"Erase Persistent Protection Bit (PPB)",
+	0xE7:"Password Read",
+	0xE8:"Password Program",
+	0xE9:"Password Unlock"}
 
 command_stats = {
 	0x01:0,
@@ -34,15 +66,47 @@ command_stats = {
 	0x04:0,
 	0x05:0,
 	0x06:0,
+	0x07:0,
 	0x0B:0,
+	0x11:0,
+	0x12:0,
+	0x13:0,
+	0x14:0,
+	0x15:0,
+	0x16:0,
+	0x17:0,
+	0x20:0,
+	0x2B:0,
+	0x2F:0,
+	0x32:0,
 	0x33:0,
+	0x34:0,
 	0x35:0,
+	0x38:0,
+	0x52:0,
+	0xD8:0,
 	0x42:0,
 	0x48:0,
+	0x4B:0,
 	0x50:0,
 	0x5A:0,
+	0x60:0,
+	0x66:0,
+	0xC7:0,
 	0x90:0,
-	0x9F:0}	
+	0x92:0,
+	0x94:0,
+	0x99:0,
+	0x9F:0,
+	0xAB:0,
+	0xE0:0,
+	0xE1:0,
+	0xE2:0,
+	0xE3:0,
+	0xE4:0,
+	0xE7:0,
+	0xE8:0,
+	0xE9:0}	
 
 def dump(data, length, addr):
 	hex = lambda line: ' '.join('{:02x}'.format(b) for b in map(ord, line))
@@ -72,7 +136,7 @@ def print_data(offset):
 
 parser = argparse.ArgumentParser(description="sniffROM - Reconstructs flash memory contents from passively captured READ/WRITE commands in a Saleae logic analyzer exported capture file. Currently supports SPI flash chips.")
 parser.add_argument("input_file", help="Saleae Logic SPI Analyzer Export File (.csv)")
-parser.add_argument("--addrlen", type=int, choices=[2,3], nargs="?", default=3, help="Length of address in bytes (default is 3)")
+parser.add_argument("--addrlen", type=int, choices=[2,3,4], nargs="?", default=3, help="Length of address in bytes (default is 3)")
 parser.add_argument("--endian", choices=["msb", "lsb"], nargs="?", default="msb", help="Endianness of address bytes (default is msb first)")
 parser.add_argument("--filter", choices=["r", "w", "rw"], nargs="?", default="rw", help="Parse READ, WRITE, or READ and WRITE commands (default is rw)")
 parser.add_argument("-o", nargs="?", default="output.bin", help="Output binary image file (default is output.bin)")
@@ -89,6 +153,7 @@ bytes_sniffed = 0
 bytes_sniffed_written = 0
 unknown_commands = 0
 jedec_id = bytearray([0x00] * 5)
+address_bytes = bytearray([0x00] * args.addrlen)
 
 with open(args.input_file, 'rb') as infile:
 	packets = csv.reader(infile)
@@ -100,14 +165,20 @@ with open(args.input_file, 'rb') as infile:
 			miso_data = int(packet[3], 16)
 			
 			if new_packet_id > packet_id:      # IF WE GOT A NEW COMMAND INSTANCE (new Packet ID according to Saleae SPI analyzer)
-				packet_id = new_packet_id
-				new_command = mosi_data
 				if offset > 0:                 # the new packet ID tells us the last command is finished, so dump remaining data from last command, if any
 					if args.v > 1:
 						print_data(offset)
 						offset = 0
+				
+				packet_id = new_packet_id
+				new_command = mosi_data
+				curr_byte = 0
+				curr_addr_byte = 0
+				offset = 0
+				
 				if not (new_command in commands):
 					unknown_commands += 1
+					command = 0x00
 					if args.v > 1:
 						print 'Time: {0:.8f}   Packet ID: {1:5}  Command: 0x{2:02x} - Unknown'.format(packet_time, packet_id, new_command)
 				else:
@@ -115,17 +186,6 @@ with open(args.input_file, 'rb') as infile:
 					command_stats[command] += 1
 					if args.v > 0:
 						print 'Time: {0:.8f}   Packet ID: {1:5}  Command: 0x{2:02x} - {3}'.format(packet_time, packet_id, command, commands[command])
-				if new_command == 0x03:        # New Read command, so reset address and offset in prep for incoming data
-					curr_addr_byte = 0
-					address_bytes = bytearray([0x00] * args.addrlen)
-					offset = 0
-				elif new_command == 0x02:      # new page program command
-					curr_addr_byte = 0
-					address_bytes = bytearray([0x00] * args.addrlen)
-					offset = 0
-				elif new_command == 0x9f:      # Read ID command
-					#jedec_id = bytearray([0x00] * 5)   # from 3 to 5
-					curr_byte = 0
 
 			elif command == 0x03:              # We are in the middle of a Read command (currently receiving data)
 				read_byte = miso_data          # the data in a read command comes on MISO
