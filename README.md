@@ -39,21 +39,53 @@ Summary:
 +---------+-----------+-----------------------------------------------------------+
 | Command | Instances | Description                                               |
 +---------+-----------+-----------------------------------------------------------+
-| 0x01    |         4 | Write Status Register                                     |
+| 0x01    |         4 | Write Status Register 1                                   |
 | 0x02    |        46 | Page Program                                              |
 | 0x03    |     59216 | Read Data                                                 |
 | 0x04    |         0 | Write Disable                                             |
 | 0x05    |        50 | Read Status Register 1                                    |
 | 0x06    |        46 | Write Enable                                              |
-| 0x48    |         0 | Read Security Registers                                   |
+| 0x07    |         0 | Read Status Register 2                                    |
 | 0x0b    |         0 | Fast Read                                                 |
-| 0x42    |         0 | Program Security Registers                                |
-| 0x50    |         4 | Write Enable for Volatile Status Register                 |
-| 0x5a    |         0 | Read Serial Flash Discoverable Parameters (SFDP) Register |
-| 0x9f    |         0 | Read JEDEC ID                                             |
-| 0x90    |         0 | Read Manufacturer/Device ID                               |
+| 0x11    |         0 | Write Status Register 3                                   |
+| 0x12    |         0 | Page Program (4-byte address)                             |
+| 0x13    |         0 | Read Data (4-byte address)                                |
+| 0x14    |         0 | AutoBoot Register Read                                    |
+| 0x15    |         0 | AutoBoot Register Write                                   |
+| 0x16    |         0 | Bank Register Read                                        |
+| 0x17    |         0 | Bank Register Write                                       |
+| 0x20    |         0 | Sector Erase (4K)                                         |
+| 0x2b    |         0 | Read Advanced Sector Protection (ASP)                     |
+| 0x2f    |         0 | Program Advanced Sector Protection (ASP)                  |
+| 0x32    |         0 | Page Program (Quad I/O)                                   |
 | 0x33    |         0 | Read Status Register 3                                    |
+| 0x34    |         0 | Page Program (Quad I/O, 4-byte address)                   |
 | 0x35    |         0 | Read Status Register 2                                    |
+| 0x38    |         0 | Page Program (Quad I/O)                                   |
+| 0x42    |         0 | Program Security Register / One Time Program (OTP) array  |
+| 0x48    |         0 | Read Security Register                                    |
+| 0x4b    |         0 | Read Unique ID / One Time Program (OTP) Array             |
+| 0x50    |         4 | Write Enable for Volatile Status Register                 |
+| 0x52    |         0 | Block Erase (32KB)                                        |
+| 0x5a    |         0 | Read Serial Flash Discoverable Parameters (SFDP) Register |
+| 0x60    |         0 | Chip Erase                                                |
+| 0x66    |         0 | Enable Reset                                              |
+| 0x90    |         0 | Read Manufacturer ID / Device ID                          |
+| 0x92    |         0 | Read Manufacturer ID / Device ID (Dual I/O)               |
+| 0x94    |         0 | Read Manufacturer ID / Device ID (Quad I/O)               |
+| 0x99    |         0 | Reset Device                                              |
+| 0x9f    |         0 | Read JEDEC ID                                             |
+| 0xab    |         0 | Read Electronic Signature / ID                            |
+| 0xc7    |         0 | Chip Erase                                                |
+| 0xd8    |         0 | Block Erase (64KB)                                        |
+| 0xe0    |         0 | Read Dynamic Protection Bit (DYB)                         |
+| 0xe1    |         0 | Write Dynamic Protection Bit (DYB)                        |
+| 0xe2    |         0 | Read Persistent Protection Bit (PPB)                      |
+| 0xe3    |         0 | Program Persistent Protection Bit (PPB)                   |
+| 0xe4    |         0 | Erase Persistent Protection Bit (PPB)                     |
+| 0xe7    |         0 | Password Read                                             |
+| 0xe8    |         0 | Password Program                                          |
+| 0xe9    |         0 | Password Unlock                                           |
 | Unknown |         0 |                                                           |
 +---------+-----------+-----------------------------------------------------------+
 
@@ -78,22 +110,54 @@ Device ID: 0x40 0x18
 +---------+-----------+-----------------------------------------------------------+
 | Command | Instances | Description                                               |
 +---------+-----------+-----------------------------------------------------------+
-| 0x01    |         0 | Write Status Register                                     |
+| 0x01    |         0 | Write Status Register 1                                   |
 | 0x02    |         3 | Page Program                                              |
 | 0x03    |      4190 | Read Data                                                 |
 | 0x04    |         3 | Write Disable                                             |
 | 0x05    |      4232 | Read Status Register 1                                    |
 | 0x06    |         6 | Write Enable                                              |
-| 0x48    |         0 | Read Security Registers                                   |
+| 0x07    |         0 | Read Status Register 2                                    |
 | 0x0b    |         0 | Fast Read                                                 |
-| 0x42    |         0 | Program Security Registers                                |
-| 0x50    |         0 | Write Enable for Volatile Status Register                 |
-| 0x5a    |         0 | Read Serial Flash Discoverable Parameters (SFDP) Register |
-| 0x9f    |         2 | Read JEDEC ID                                             |
-| 0x90    |         0 | Read Manufacturer/Device ID                               |
+| 0x11    |         0 | Write Status Register 3                                   |
+| 0x12    |         0 | Page Program (4-byte address)                             |
+| 0x13    |         0 | Read Data (4-byte address)                                |
+| 0x14    |         0 | AutoBoot Register Read                                    |
+| 0x15    |         0 | AutoBoot Register Write                                   |
+| 0x16    |         0 | Bank Register Read                                        |
+| 0x17    |         0 | Bank Register Write                                       |
+| 0x20    |         0 | Sector Erase (4K)                                         |
+| 0x2b    |         0 | Read Advanced Sector Protection (ASP)                     |
+| 0x2f    |         0 | Program Advanced Sector Protection (ASP)                  |
+| 0x32    |         0 | Page Program (Quad I/O)                                   |
 | 0x33    |         0 | Read Status Register 3                                    |
+| 0x34    |         0 | Page Program (Quad I/O, 4-byte address)                   |
 | 0x35    |         0 | Read Status Register 2                                    |
-| Unknown |         0 |                                                           |
+| 0x38    |         0 | Page Program (Quad I/O)                                   |
+| 0x42    |         0 | Program Security Register / One Time Program (OTP) array  |
+| 0x48    |         0 | Read Security Register                                    |
+| 0x4b    |         0 | Read Unique ID / One Time Program (OTP) Array             |
+| 0x50    |         0 | Write Enable for Volatile Status Register                 |
+| 0x52    |         0 | Block Erase (32KB)                                        |
+| 0x5a    |         0 | Read Serial Flash Discoverable Parameters (SFDP) Register |
+| 0x60    |         0 | Chip Erase                                                |
+| 0x66    |         0 | Enable Reset                                              |
+| 0x90    |         0 | Read Manufacturer ID / Device ID                          |
+| 0x92    |         0 | Read Manufacturer ID / Device ID (Dual I/O)               |
+| 0x94    |         0 | Read Manufacturer ID / Device ID (Quad I/O)               |
+| 0x99    |         0 | Reset Device                                              |
+| 0x9f    |         2 | Read JEDEC ID                                             |
+| 0xab    |         0 | Read Electronic Signature / ID                            |
+| 0xc7    |         0 | Chip Erase                                                |
+| 0xd8    |         0 | Block Erase (64KB)                                        |
+| 0xe0    |         0 | Read Dynamic Protection Bit (DYB)                         |
+| 0xe1    |         0 | Write Dynamic Protection Bit (DYB)                        |
+| 0xe2    |         0 | Read Persistent Protection Bit (PPB)                      |
+| 0xe3    |         0 | Program Persistent Protection Bit (PPB)                   |
+| 0xe4    |         0 | Erase Persistent Protection Bit (PPB)                     |
+| 0xe7    |         0 | Password Read                                             |
+| 0xe8    |         0 | Password Program                                          |
+| 0xe9    |         0 | Password Unlock                                           |
+| Other   |         0 |                                                           |
 +---------+-----------+-----------------------------------------------------------+
 
 $ wc -c spiflash_out.bin 
@@ -101,4 +165,5 @@ $ wc -c spiflash_out.bin
 ```
 
 Reference: https://www.optiv.com/blog/demystifying-hardware-security-part-ii <br>
+
 JEDEC Manufacturer IDs: http://www.idhw.com/textual/chip/jedec_spd_man.html
