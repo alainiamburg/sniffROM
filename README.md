@@ -3,6 +3,7 @@ Reconstructs flash memory contents from passively captured READ/WRITE commands i
 
 Features:
 * Preserves memory addresses.
+* Data visualization
 * Currently supports SPI flash chips.
 ```
 usage: sniffROM.py [-h] [--addrlen [{2,3}]] [--endian [{msb,lsb}]]
@@ -20,6 +21,7 @@ optional arguments:
                         is rw)
   -o [O]                Output binary image file (default is output.bin)
   --summary             Also dump statistics
+  --graph               Show visual representation of flash layout
   -v                    Increase verbosity (up to -vvv)
 ```
 Examples:
