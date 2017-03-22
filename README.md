@@ -32,7 +32,7 @@ Finished parsing input file
 Trimming pad bytes...
 
 Rebuilt image: 664784 bytes (saved to spiflash_out.bin)
-Captured data: 234598 bytes (35.29%) (46 bytes from WRITE commands)
+Captured data: 228847 bytes (34.42%) (46 bytes from WRITE commands)
 
 Summary:
 
@@ -101,7 +101,7 @@ Finished parsing input file
 Trimming pad bytes...
 
 Rebuilt image: 16777216 bytes (saved to spiflash_out.bin)
-Captured data: 7827748 bytes (46.66%) (214 bytes from WRITE commands)
+Captured data: 6988082 bytes (41.65%) (214 bytes from WRITE commands)
 
 Summary:
 
@@ -172,7 +172,7 @@ Finished parsing input file
 Trimming pad bytes...
 
 Rebuilt image: 8323248 bytes (saved to spiflash_out.bin)
-Captured data: 7296873 bytes (87.67%) (0 bytes from WRITE commands)
+Captured data: 7164937 bytes (86.08%) (0 bytes from WRITE commands)
 
 Summary:
 
@@ -235,6 +235,77 @@ Device ID: 0x16
 $ wc -c spiflash_out.bin 
  8323248 spiflash_out.bin
 ```
+4) Spansion S25FL064P (Netgear WNDR3400)
+```
+$ python sniffROM.py -o spiflash_out.bin spansion2_spiflash_onboot.csv --summary 
+Finished parsing input file
+Trimming pad bytes...
+
+Rebuilt image: 8346616 bytes (saved to spiflash_out.bin)
+Captured data: 3707089 bytes (44.41%) (0 bytes from WRITE commands)
+
+Summary:
+
+Device ID: 0x16
+
++---------+-----------+-----------------------------------------------------------+
+| Command | Instances | Description                                               |
++---------+-----------+-----------------------------------------------------------+
+| 0x01    |         0 | Write Status Register 1                                   |
+| 0x02    |         0 | Page Program                                              |
+| 0x03    |         0 | Read Data                                                 |
+| 0x04    |         0 | Write Disable                                             |
+| 0x05    |         0 | Read Status Register 1                                    |
+| 0x06    |         0 | Write Enable                                              |
+| 0x07    |         0 | Read Status Register 2                                    |
+| 0x0b    |   1432193 | Fast Read                                                 |
+| 0x11    |         0 | Write Status Register 3                                   |
+| 0x12    |         0 | Page Program (4-byte address)                             |
+| 0x13    |         0 | Read Data (4-byte address)                                |
+| 0x14    |         0 | AutoBoot Register Read                                    |
+| 0x15    |         0 | AutoBoot Register Write                                   |
+| 0x16    |         0 | Bank Register Read                                        |
+| 0x17    |         0 | Bank Register Write                                       |
+| 0x20    |         0 | Sector Erase (4K)                                         |
+| 0x2b    |         0 | Read Advanced Sector Protection (ASP)                     |
+| 0x2f    |         0 | Program Advanced Sector Protection (ASP)                  |
+| 0x32    |         0 | Page Program (Quad I/O)                                   |
+| 0x33    |         0 | Read Status Register 3                                    |
+| 0x34    |         0 | Page Program (Quad I/O, 4-byte address)                   |
+| 0x35    |         0 | Read Status Register 2                                    |
+| 0x38    |         0 | Page Program (Quad I/O)                                   |
+| 0x42    |         0 | Program Security Register / One Time Program (OTP) array  |
+| 0x48    |         0 | Read Security Register                                    |
+| 0x4b    |         0 | Read Unique ID / One Time Program (OTP) Array             |
+| 0x50    |         0 | Write Enable for Volatile Status Register                 |
+| 0x52    |         0 | Block Erase (32KB)                                        |
+| 0x5a    |         0 | Read Serial Flash Discoverable Parameters (SFDP) Register |
+| 0x60    |         0 | Chip Erase                                                |
+| 0x66    |         0 | Enable Reset                                              |
+| 0x90    |         0 | Read Manufacturer ID / Device ID                          |
+| 0x92    |         0 | Read Manufacturer ID / Device ID (Dual I/O)               |
+| 0x94    |         0 | Read Manufacturer ID / Device ID (Quad I/O)               |
+| 0x99    |         0 | Reset Device                                              |
+| 0x9f    |         0 | Read JEDEC ID                                             |
+| 0xab    |         5 | Release Power-Down / Device ID                            |
+| 0xb9    |         5 | Power Down                                                |
+| 0xc7    |         0 | Chip Erase                                                |
+| 0xd8    |         0 | Block Erase (64KB)                                        |
+| 0xe0    |         0 | Read Dynamic Protection Bit (DYB)                         |
+| 0xe1    |         0 | Write Dynamic Protection Bit (DYB)                        |
+| 0xe2    |         0 | Read Persistent Protection Bit (PPB)                      |
+| 0xe3    |         0 | Program Persistent Protection Bit (PPB)                   |
+| 0xe4    |         0 | Erase Persistent Protection Bit (PPB)                     |
+| 0xe7    |         0 | Password Read                                             |
+| 0xe8    |         0 | Password Program                                          |
+| 0xe9    |         0 | Password Unlock                                           |
+| Unknown |         0 |                                                           |
++---------+-----------+-----------------------------------------------------------+
+
+$ wc -c spiflash_out.bin
+ 8346616 spiflash_out.bin
+```
+
 Reference: https://www.optiv.com/blog/demystifying-hardware-security-part-ii <br>
 
 JEDEC Manufacturer IDs: http://www.idhw.com/textual/chip/jedec_spd_man.html
