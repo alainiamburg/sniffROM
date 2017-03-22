@@ -1,4 +1,6 @@
 import argparse, csv, sys
+from matplotlib import mpl, pyplot
+import numpy as np
 
 ### Logic export csv file format:
 
@@ -143,11 +145,13 @@ parser.add_argument("--endian", choices=["msb", "lsb"], nargs="?", default="msb"
 parser.add_argument("--filter", choices=["r", "w", "rw"], nargs="?", default="rw", help="Parse READ, WRITE, or READ and WRITE commands (default is rw)")
 parser.add_argument("-o", nargs="?", default="output.bin", help="Output binary image file (default is output.bin)")
 parser.add_argument("--summary", help="Also dump statistics", action="store_true")
+parser.add_argument("--graph", help="Show visual representation of flash layout", action="store_true")
 parser.add_argument("-v", help="Increase verbosity (up to -vvv)", action="count")
 args = parser.parse_args()
 
 flash_image = bytearray([FLASH_FILL_BYTE] * FLASH_PADDED_SIZE)
 flash_image_fromWrites = bytearray([FLASH_FILL_BYTE] * FLASH_PADDED_SIZE)
+mapping_image = bytearray([0] * FLASH_PADDED_SIZE)
 packet_id = -1
 new_packet_id = 0
 offset = 0
@@ -201,13 +205,17 @@ with open(args.input_file, 'rb') as infile:
 							address = (address_bytes[0] << 16) + (address_bytes[1] << 8) + (address_bytes[2] << 0)
 						elif args.endian == "lsb":
 							address = (address_bytes[2] << 16) + (address_bytes[1] << 8) + (address_bytes[0] << 0)
-						flash_image[address+offset] = read_byte
-						offset += 1
+
 						if flash_image[address+offset] != FLASH_FILL_BYTE:    # hacky way to check for multiple access to this addr
 							if args.v > 2:
 								print ' [*] Memory address 0x{:02x} may have been accessed more than once. Perhaps it is important?'.format(address+offset)
 						else:
 							bytes_sniffed += 1
+
+						flash_image[address+offset] = read_byte
+						offset += 1
+						if mapping_image[address+offset] != 2:
+							mapping_image[address+offset] = 1
 					else:   # get the address
 						address_bytes[curr_addr_byte] = addr_byte
 						curr_addr_byte += 1
@@ -223,13 +231,17 @@ with open(args.input_file, 'rb') as infile:
 								address = (address_bytes[0] << 16) + (address_bytes[1] << 8) + (address_bytes[2] << 0)
 							elif args.endian == "lsb":
 								address = (address_bytes[2] << 16) + (address_bytes[1] << 8) + (address_bytes[0] << 0)
-							flash_image[address+offset] = read_byte
-							offset += 1
+
 							if flash_image[address+offset] != FLASH_FILL_BYTE:    # hacky way to check for multiple access to this addr
 								if args.v > 2:
 									print ' [*] Memory address 0x{:02x} may have been accessed more than once. Perhaps it is important?'.format(address+offset)
 							else:
 								bytes_sniffed += 1
+
+							flash_image[address+offset] = read_byte
+							offset += 1
+							if mapping_image[address+offset] != 2:
+								mapping_image[address+offset] = 1
 					else:   # get the address
 						address_bytes[curr_addr_byte] = addr_byte
 						curr_addr_byte += 1
@@ -242,15 +254,18 @@ with open(args.input_file, 'rb') as infile:
 							address = (address_bytes[0] << 16) + (address_bytes[1] << 8) + (address_bytes[2] << 0)
 						elif args.endian == "lsb":
 							address = (address_bytes[2] << 16) + (address_bytes[1] << 8) + (address_bytes[0] << 0)
-						flash_image_fromWrites[address+offset] = write_byte    # this holds write data separately
-						flash_image[address+offset] = write_byte
-						offset += 1
-						bytes_sniffed_written += 1
+
 						if flash_image[address+offset] != FLASH_FILL_BYTE:    # hacky way to check for multiple access to this addr
 							if args.v > 2:
 								print ' [*] Memory address 0x{:02x} may have been accessed more than once. Perhaps it is important?'.format(address+offset)
 						else:
 							bytes_sniffed += 1
+
+						flash_image_fromWrites[address+offset] = write_byte    # this holds write data separately
+						flash_image[address+offset] = write_byte
+						offset += 1
+						bytes_sniffed_written += 1
+						mapping_image[address+offset] = 2
 					else:   # get the address
 						address_bytes[curr_addr_byte] = addr_byte
 						curr_addr_byte += 1	
@@ -319,3 +334,26 @@ if args.summary:
 	if unknown_commands > 0:
 		print "| Unknown | {0:9} |                                                           |".format(unknown_commands)
 	print '+---------+-----------+-----------------------------------------------------------+'
+
+if args.graph:
+	# mapping stuff
+	# 80000 bytes per row?
+	bytes_per_row = 20000
+	mapping_bytes = []
+	mapping_rows = FLASH_ENDING_SIZE / bytes_per_row
+	mapping_remainder = FLASH_ENDING_SIZE % bytes_per_row
+	
+	for row in range(0,mapping_rows):
+		mapping_bytes.append(mapping_image[row*bytes_per_row:(row*bytes_per_row)+bytes_per_row])
+		# still need to handle the mapping_remainder row of bytes
+
+	zvals = mapping_bytes
+	cmap = mpl.colors.ListedColormap(['black','blue','red'])
+	bounds=[1,1,0,2,2]
+	norm = mpl.colors.BoundaryNorm(bounds, ncolors=3)
+	
+	img = pyplot.imshow(zvals,interpolation='nearest',cmap=cmap,norm=norm,aspect='auto')
+	fig = pyplot.figure(1)
+	fig.savefig('image.png')
+	
+	pyplot.show()
