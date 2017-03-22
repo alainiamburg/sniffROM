@@ -49,7 +49,8 @@ commands = {
 	0x94:"Read Manufacturer ID / Device ID (Quad I/O)",
 	0x99:"Reset Device",
 	0x9F:"Read JEDEC ID",
-	0xAB:"Read Electronic Signature / ID",
+	0xAB:"Release Power-Down / Device ID",
+	0xB9:"Power Down",
 	0xE0:"Read Dynamic Protection Bit (DYB)",
 	0xE1:"Write Dynamic Protection Bit (DYB)",
 	0xE2:"Read Persistent Protection Bit (PPB)",
@@ -99,6 +100,7 @@ command_stats = {
 	0x99:0,
 	0x9F:0,
 	0xAB:0,
+	0xB9:0,
 	0xE0:0,
 	0xE1:0,
 	0xE2:0,
@@ -153,6 +155,7 @@ bytes_sniffed = 0
 bytes_sniffed_written = 0
 unknown_commands = 0
 jedec_id = bytearray([0x00] * 5)
+device_id = 0x00
 address_bytes = bytearray([0x00] * args.addrlen)
 
 with open(args.input_file, 'rb') as infile:
@@ -160,7 +163,7 @@ with open(args.input_file, 'rb') as infile:
 	for packet in packets:
 		if packet[1].isdigit():                # ignores the first header line
 			packet_time = float(packet[0])
-			new_packet_id = int(packet[1],16)
+			new_packet_id = int(packet[1])
 			mosi_data = int(packet[2], 16)
 			miso_data = int(packet[3], 16)
 			
@@ -175,6 +178,8 @@ with open(args.input_file, 'rb') as infile:
 				curr_byte = 0
 				curr_addr_byte = 0
 				offset = 0
+				dummy_byte_fastread = True
+				dummy_bytes_rpddid = 0
 				
 				if not (new_command in commands):
 					unknown_commands += 1
@@ -205,6 +210,27 @@ with open(args.input_file, 'rb') as infile:
 					else:   # get the address
 						address_bytes[curr_addr_byte] = addr_byte
 						curr_addr_byte += 1
+			elif command == 0x0b:              # Fast Read cmd
+				read_byte = miso_data
+				addr_byte = mosi_data
+				if (args.filter == 'r' or args.filter == 'rw'):
+					if curr_addr_byte == args.addrlen:  # we have the whole address. read data starting with this packet
+						if dummy_byte_fastread:                  # Fast Read command sends a dummy byte (8 clock cycles) after the address
+							dummy_byte_fastread = False
+						else:
+							if args.endian == "msb":   # TODO add if else for different address byte lengths
+								address = (address_bytes[0] << 16) + (address_bytes[1] << 8) + (address_bytes[2] << 0)
+							elif args.endian == "lsb":
+								address = (address_bytes[2] << 16) + (address_bytes[1] << 8) + (address_bytes[0] << 0)
+							if args.v > 2:
+								if flash_image[address+offset] != FLASH_FILL_BYTE:    # hacky way to check for multiple access to this addr
+									print ' [*] Memory address 0x{:02x} may have been accessed more than once. Perhaps it is important?'.format(address+offset)
+							flash_image[address+offset] = read_byte
+							offset += 1
+							bytes_sniffed += 1
+					else:   # get the address
+						address_bytes[curr_addr_byte] = addr_byte
+						curr_addr_byte += 1
 			elif command == 0x02:	      # we are in a page program (write) command
 				write_byte = mosi_data    # the data and addr in a write command goes on MOSI
 				addr_byte = mosi_data
@@ -225,7 +251,15 @@ with open(args.input_file, 'rb') as infile:
 					else:   # get the address
 						address_bytes[curr_addr_byte] = addr_byte
 						curr_addr_byte += 1	
-			elif command == 0x9f:           # read ID command
+			elif command == 0xab:           # Release Power-Down / Device ID command
+				read_byte = miso_data
+				if dummy_bytes_rpddid == 3:    # If this command is followed by 3 dummy bytes,
+					device_id = read_byte      #  then it is a Device ID command
+					if args.v > 0:
+						print ' [+] Device ID: {0}'.format(hex(device_id))
+				else:
+					dummy_bytes_rpddid += 1
+			elif command == 0x9f:           # read JEDEC ID command (1 byte MFG ID, and 1-3 byte Device ID)
 				read_byte = miso_data
 				if curr_byte <= 3:
 					jedec_id[curr_byte] = read_byte
@@ -234,7 +268,6 @@ with open(args.input_file, 'rb') as infile:
 					if args.v > 0:
 						print ' [+] Manufacturer ID: {0}'.format(hex(jedec_id[0]))
 						print ' [+] Device ID: {0} {1}'.format(hex(jedec_id[1]), hex(jedec_id[2]))
-						print ' [+] Look these up here: http://www.idhw.com/textual/chip/jedec_spd_man.html'
 	if offset > 0:    # this is here again to catch the very last command. otherwise we leave the for loop without having a chance to print this. kind of ugly.
 		if args.v > 1:
 			print_data(offset)
@@ -271,6 +304,8 @@ if args.summary:
 		#print '+---------+-----------+\n'#-------------+\n'
 		print 'Manufacturer ID: {0}'.format(hex(jedec_id[0]))
 		print 'Device ID: {0} {1}\n'.format(hex(jedec_id[1]), hex(jedec_id[2]))
+	if device_id:
+		print 'Device ID: {0}\n'.format(hex(device_id))
 	print '+---------+-----------+-----------------------------------------------------------+'
 	print '| Command | Instances | Description                                               |'
 	print '+---------+-----------+-----------------------------------------------------------+'
