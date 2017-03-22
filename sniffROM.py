@@ -151,7 +151,7 @@ flash_image_fromWrites = bytearray([FLASH_FILL_BYTE] * FLASH_PADDED_SIZE)
 packet_id = -1
 new_packet_id = 0
 offset = 0
-bytes_sniffed = 0
+bytes_sniffed = 0            # this is now a count of 'unique' bytes sniffed, i.e. not re-reads of same memory addresses
 bytes_sniffed_written = 0
 unknown_commands = 0
 jedec_id = bytearray([0x00] * 5)
@@ -184,7 +184,7 @@ with open(args.input_file, 'rb') as infile:
 				if not (new_command in commands):
 					unknown_commands += 1
 					command = 0x00
-					if args.v > 1:
+					if args.v > 0:
 						print 'Time: {0:.8f}   Packet ID: {1:5}  Command: 0x{2:02x} - Unknown'.format(packet_time, packet_id, new_command)
 				else:
 					command = new_command
@@ -192,21 +192,22 @@ with open(args.input_file, 'rb') as infile:
 					if args.v > 0:
 						print 'Time: {0:.8f}   Packet ID: {1:5}  Command: 0x{2:02x} - {3}'.format(packet_time, packet_id, command, commands[command])
 
-			elif command == 0x03:              # We are in the middle of a Read command (currently receiving data)
+			elif command == 0x03:              # Read command
 				read_byte = miso_data          # the data in a read command comes on MISO
 				addr_byte = mosi_data
 				if (args.filter == 'r' or args.filter == 'rw'):
-					if curr_addr_byte == args.addrlen:  # we have the whole address. read data starting with this packet
+					if curr_addr_byte == args.addrlen:  # we have the whole address. read data
 						if args.endian == "msb":   # TODO add if else for different address byte lengths
 							address = (address_bytes[0] << 16) + (address_bytes[1] << 8) + (address_bytes[2] << 0)
 						elif args.endian == "lsb":
 							address = (address_bytes[2] << 16) + (address_bytes[1] << 8) + (address_bytes[0] << 0)
-						if args.v > 2:
-							if flash_image[address+offset] != FLASH_FILL_BYTE:    # hacky way to check for multiple access to this addr
-								print ' [*] Memory address 0x{:02x} may have been accessed more than once. Perhaps it is important?'.format(address+offset)
 						flash_image[address+offset] = read_byte
 						offset += 1
-						bytes_sniffed += 1
+						if flash_image[address+offset] != FLASH_FILL_BYTE:    # hacky way to check for multiple access to this addr
+							if args.v > 2:
+								print ' [*] Memory address 0x{:02x} may have been accessed more than once. Perhaps it is important?'.format(address+offset)
+						else:
+							bytes_sniffed += 1
 					else:   # get the address
 						address_bytes[curr_addr_byte] = addr_byte
 						curr_addr_byte += 1
@@ -214,7 +215,7 @@ with open(args.input_file, 'rb') as infile:
 				read_byte = miso_data
 				addr_byte = mosi_data
 				if (args.filter == 'r' or args.filter == 'rw'):
-					if curr_addr_byte == args.addrlen:  # we have the whole address. read data starting with this packet
+					if curr_addr_byte == args.addrlen:  # we have the whole address. read data
 						if dummy_byte_fastread:                  # Fast Read command sends a dummy byte (8 clock cycles) after the address
 							dummy_byte_fastread = False
 						else:
@@ -222,32 +223,34 @@ with open(args.input_file, 'rb') as infile:
 								address = (address_bytes[0] << 16) + (address_bytes[1] << 8) + (address_bytes[2] << 0)
 							elif args.endian == "lsb":
 								address = (address_bytes[2] << 16) + (address_bytes[1] << 8) + (address_bytes[0] << 0)
-							if args.v > 2:
-								if flash_image[address+offset] != FLASH_FILL_BYTE:    # hacky way to check for multiple access to this addr
-									print ' [*] Memory address 0x{:02x} may have been accessed more than once. Perhaps it is important?'.format(address+offset)
 							flash_image[address+offset] = read_byte
 							offset += 1
-							bytes_sniffed += 1
+							if flash_image[address+offset] != FLASH_FILL_BYTE:    # hacky way to check for multiple access to this addr
+								if args.v > 2:
+									print ' [*] Memory address 0x{:02x} may have been accessed more than once. Perhaps it is important?'.format(address+offset)
+							else:
+								bytes_sniffed += 1
 					else:   # get the address
 						address_bytes[curr_addr_byte] = addr_byte
 						curr_addr_byte += 1
-			elif command == 0x02:	      # we are in a page program (write) command
+			elif command == 0x02:	      # page program (write) command
 				write_byte = mosi_data    # the data and addr in a write command goes on MOSI
 				addr_byte = mosi_data
 				if (args.filter == 'w' or args.filter == 'rw'):
-					if curr_addr_byte == args.addrlen:  # we have the whole address. read data starting with this packet
+					if curr_addr_byte == args.addrlen:  # we have the whole address. read data
 						if args.endian == "msb":
 							address = (address_bytes[0] << 16) + (address_bytes[1] << 8) + (address_bytes[2] << 0)
 						elif args.endian == "lsb":
 							address = (address_bytes[2] << 16) + (address_bytes[1] << 8) + (address_bytes[0] << 0)
-						if args.v > 2:
-							if flash_image[address+offset] != FLASH_FILL_BYTE:    # hacky way to check for multiple access to this addr
-								print ' [*] Memory address 0x{:02x} may have been accessed more than once. Perhaps it is important?'.format(address+offset)
 						flash_image_fromWrites[address+offset] = write_byte    # this holds write data separately
 						flash_image[address+offset] = write_byte
 						offset += 1
 						bytes_sniffed_written += 1
-						bytes_sniffed += 1
+						if flash_image[address+offset] != FLASH_FILL_BYTE:    # hacky way to check for multiple access to this addr
+							if args.v > 2:
+								print ' [*] Memory address 0x{:02x} may have been accessed more than once. Perhaps it is important?'.format(address+offset)
+						else:
+							bytes_sniffed += 1
 					else:   # get the address
 						address_bytes[curr_addr_byte] = addr_byte
 						curr_addr_byte += 1	
@@ -311,6 +314,8 @@ if args.summary:
 	print '+---------+-----------+-----------------------------------------------------------+'
 	for command in command_stats:
 		#print "Command 0x{0:02x}: {1} instances ({2})".format(command, command_stats[command], commands[command])
-		print "| 0x{0:02x}    | {1:9} | {2:57} |".format(command, command_stats[command], commands[command])
-	print "| Unknown | {0:9} |                                                           |".format(unknown_commands)
+		if command_stats[command] > 0:
+			print "| 0x{0:02x}    | {1:9} | {2:57} |".format(command, command_stats[command], commands[command])
+	if unknown_commands > 0:
+		print "| Unknown | {0:9} |                                                           |".format(unknown_commands)
 	print '+---------+-----------+-----------------------------------------------------------+'
