@@ -1,5 +1,6 @@
 import argparse, csv, sys
 from matplotlib import mpl, pyplot
+import matplotlib.ticker as ticker
 import numpy as np
 
 ### Logic export csv file format:
@@ -11,8 +12,10 @@ import numpy as np
 FLASH_PADDED_SIZE = 20000000     # hacky flash image start size, make this better. auto detect chip size (via JEDEC ID) and adjust accordingly?
 FLASH_FILL_BYTE = 0xFF
 FLASH_ENDING_SIZE = FLASH_WRITES_ENDING_SIZE = FLASH_PADDED_SIZE
+GRAPH_BYTES_PER_ROW = 2048
 
 commands = {
+	0x00:"No Operation",
 	0x01:"Write Status Register 1",
 	0x02:"Page Program",
 	0x03:"Read Data",
@@ -20,7 +23,8 @@ commands = {
 	0x05:"Read Status Register 1",
 	0x06:"Write Enable",
 	0x07:"Read Status Register 2",
-	0x0B:"Fast Read",
+	0x0B:"Fast Read Data",
+	0x0C:"Fast Read Data (4-byte address)",
 	0x11:"Write Status Register 3",
 	0x12:"Page Program (4-byte address)",
 	0x13:"Read Data (4-byte address)",
@@ -29,15 +33,14 @@ commands = {
 	0x16:"Bank Register Read",
 	0x17:"Bank Register Write",
 	0x20:"Sector Erase (4K)",
-	0x2B:"Read Advanced Sector Protection (ASP)",
-	0x2F:"Program Advanced Sector Protection (ASP)",
+	0x2B:"Read Security Register",
+	0x2F:"Program Security Register",
 	0x32:"Page Program (Quad I/O)",
 	0x33:"Read Status Register 3",
 	0x34:"Page Program (Quad I/O, 4-byte address)",
-	0x35:"Read Status Register 2",   # or Read Configuration Register 1
-	0x38:"Page Program (Quad I/O)",
+	0x35:"Enter QPI Mode", #or Read Status Register 2, or Read Configuration Register 1
+	0x38:"Page Program (Quad I/O)",  # or Enter QPI Mode
 	0x52:"Block Erase (32KB)",
-	0xD8:"Block Erase (64KB)",
 	0x42:"Program Security Register / One Time Program (OTP) array",
 	0x48:"Read Security Register",
 	0x4B:"Read Unique ID / One Time Program (OTP) Array",
@@ -45,7 +48,9 @@ commands = {
 	0x5A:"Read Serial Flash Discoverable Parameters (SFDP) Register",
 	0x60:"Chip Erase",
 	0x66:"Enable Reset",
+	0x68:"Write Protect Selection",
 	0xC7:"Chip Erase",
+	0xD8:"Block Erase (64KB)",
 	0x90:"Read Manufacturer ID / Device ID",
 	0x92:"Read Manufacturer ID / Device ID (Dual I/O)",
 	0x94:"Read Manufacturer ID / Device ID (Quad I/O)",
@@ -63,6 +68,7 @@ commands = {
 	0xE9:"Password Unlock"}
 
 command_stats = {
+	0x00:0,
 	0x01:0,
 	0x02:0,
 	0x03:0,
@@ -71,6 +77,7 @@ command_stats = {
 	0x06:0,
 	0x07:0,
 	0x0B:0,
+	0x0C:0,
 	0x11:0,
 	0x12:0,
 	0x13:0,
@@ -87,7 +94,6 @@ command_stats = {
 	0x35:0,
 	0x38:0,
 	0x52:0,
-	0xD8:0,
 	0x42:0,
 	0x48:0,
 	0x4B:0,
@@ -95,7 +101,9 @@ command_stats = {
 	0x5A:0,
 	0x60:0,
 	0x66:0,
+	0x68:0,
 	0xC7:0,
+	0xD8:0,
 	0x90:0,
 	0x92:0,
 	0x94:0,
@@ -119,6 +127,11 @@ def dump(data, length, addr):
 	for i in range(0, len(data), length):
 		line = data[i:i+length]
 		print('  0x{:08x}   {:47}   {}'.format(addr+i, hex(line), str(line)))
+
+def plot_func(x, pos):
+	s = '0x%06x' % (int(x)*GRAPH_BYTES_PER_ROW)
+	return s
+
 
 def print_data(offset):
 	if offset <= 4:
@@ -155,7 +168,7 @@ mapping_image = bytearray([0] * FLASH_PADDED_SIZE)
 packet_id = -1
 new_packet_id = 0
 offset = 0
-bytes_sniffed = 0            # this is now a count of 'unique' bytes sniffed, i.e. not re-reads of same memory addresses
+bytes_sniffed = 0            # this does not count re-reads of same memory addresses
 bytes_sniffed_written = 0
 unknown_commands = 0
 jedec_id = bytearray([0x00] * 5)
@@ -213,9 +226,10 @@ with open(args.input_file, 'rb') as infile:
 							bytes_sniffed += 1
 
 						flash_image[address+offset] = read_byte
-						offset += 1
 						if mapping_image[address+offset] != 2:
 							mapping_image[address+offset] = 1
+
+						offset += 1
 					else:   # get the address
 						address_bytes[curr_addr_byte] = addr_byte
 						curr_addr_byte += 1
@@ -239,9 +253,10 @@ with open(args.input_file, 'rb') as infile:
 								bytes_sniffed += 1
 
 							flash_image[address+offset] = read_byte
-							offset += 1
 							if mapping_image[address+offset] != 2:
 								mapping_image[address+offset] = 1
+
+							offset += 1
 					else:   # get the address
 						address_bytes[curr_addr_byte] = addr_byte
 						curr_addr_byte += 1
@@ -263,9 +278,9 @@ with open(args.input_file, 'rb') as infile:
 
 						flash_image_fromWrites[address+offset] = write_byte    # this holds write data separately
 						flash_image[address+offset] = write_byte
-						offset += 1
 						bytes_sniffed_written += 1
 						mapping_image[address+offset] = 2
+						offset += 1
 					else:   # get the address
 						address_bytes[curr_addr_byte] = addr_byte
 						curr_addr_byte += 1	
@@ -315,11 +330,6 @@ print 'Rebuilt image: {0} bytes (saved to {1})\nCaptured data: {2} bytes ({3:.2f
 if args.summary:
 	print '\nSummary:\n'
 	if jedec_id[0]:
-		#print '+---------+-----------+'#-------------+'
-		#print '| Mfg. ID | Device ID |'# Description |'
-		#print '+---------+-----------+'#-------------+'
-		#print '| {0}    | {1} {2} |'.format(hex(jedec_id[0]), hex(jedec_id[1]), hex(jedec_id[2]))
-		#print '+---------+-----------+\n'#-------------+\n'
 		print 'Manufacturer ID: {0}'.format(hex(jedec_id[0]))
 		print 'Device ID: {0} {1}\n'.format(hex(jedec_id[1]), hex(jedec_id[2]))
 	if device_id:
@@ -328,32 +338,31 @@ if args.summary:
 	print '| Command | Instances | Description                                               |'
 	print '+---------+-----------+-----------------------------------------------------------+'
 	for command in command_stats:
-		#print "Command 0x{0:02x}: {1} instances ({2})".format(command, command_stats[command], commands[command])
 		if command_stats[command] > 0:
 			print "| 0x{0:02x}    | {1:9} | {2:57} |".format(command, command_stats[command], commands[command])
 	if unknown_commands > 0:
 		print "| Unknown | {0:9} |                                                           |".format(unknown_commands)
 	print '+---------+-----------+-----------------------------------------------------------+'
 
+
 if args.graph:
-	# mapping stuff
-	# 80000 bytes per row?
-	bytes_per_row = 20000
+	print '\nGenerating Graph...'
 	mapping_bytes = []
-	mapping_rows = FLASH_ENDING_SIZE / bytes_per_row
-	mapping_remainder = FLASH_ENDING_SIZE % bytes_per_row
+	mapping_rows = FLASH_ENDING_SIZE / GRAPH_BYTES_PER_ROW
+	mapping_remainder = FLASH_ENDING_SIZE % GRAPH_BYTES_PER_ROW
 	
 	for row in range(0,mapping_rows):
-		mapping_bytes.append(mapping_image[row*bytes_per_row:(row*bytes_per_row)+bytes_per_row])
-		# still need to handle the mapping_remainder row of bytes
+		mapping_bytes.append(mapping_image[row*GRAPH_BYTES_PER_ROW:(row*GRAPH_BYTES_PER_ROW)+GRAPH_BYTES_PER_ROW])	
 
-	zvals = mapping_bytes
 	cmap = mpl.colors.ListedColormap(['black','blue','red'])
-	bounds=[1,1,0,2,2]
+	bounds=[1,1,2,2]
 	norm = mpl.colors.BoundaryNorm(bounds, ncolors=3)
-	
-	img = pyplot.imshow(zvals,interpolation='nearest',cmap=cmap,norm=norm,aspect='auto')
-	fig = pyplot.figure(1)
-	fig.savefig('image.png')
-	
+	pyplot.imshow(mapping_bytes,interpolation='nearest',cmap=cmap,norm=norm,aspect='auto')
+	pyplot.ylabel('Address')
+	pyplot.xlabel('Offset')
+	pyplot.grid(True,color='white')
+	axes = pyplot.gca()
+	axes.get_xaxis().set_major_formatter(ticker.FormatStrFormatter("0x%04x"))
+	axes.get_yaxis().set_major_formatter(ticker.FuncFormatter(plot_func))
+	pyplot.savefig('image.png')
 	pyplot.show()
