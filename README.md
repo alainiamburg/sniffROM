@@ -17,8 +17,7 @@ optional arguments:
   -h, --help            show this help message and exit
   --addrlen [{2,3}]     Length of address in bytes (default is 3)
   --endian [{msb,lsb}]  Endianness of address bytes (default is msb first)
-  --filter [{r,w,rw}]   Parse READ, WRITE, or READ and WRITE commands (default
-                        is rw)
+  --filter [{r,w,rw}]   Parse READ, WRITE, or READ and WRITE commands (default is rw)
   -o [O]                Output binary image file (default is output.bin)
   --summary             Also dump statistics
   --graph               Show visual representation of flash layout
