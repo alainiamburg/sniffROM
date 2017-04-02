@@ -1,10 +1,10 @@
 # sniffROM
-Reconstructs flash memory contents from passively captured READ/WRITE commands in a Saleae logic analyzer exported capture file.
+A tool for passive data capture and reconnaissance of flash chips. It is used in conjunction with a Saleae logic analyzer to reconstruct flash memory contents and extract contextual information about device operations.
 
-Features:
-* Preserves memory addresses.
-* Data visualization
+* Preserves memory addresses of captured data.
+* Supports binary visualization of reconstructed image.
 * Currently supports SPI flash chips.
+* Recognizes many SPI flash commands across different chip vendors
 ```
 usage: sniffROM.py [-h] [--addrlen [{2,3}]] [--endian [{msb,lsb}]]
                    [--filter [{r,w,rw}]] [-o [O]] [--summary] [-v]
