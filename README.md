@@ -25,6 +25,3 @@ optional arguments:
   -v                    Increase verbosity (up to -vvv)
 ```
 See [Wiki](https://github.com/alainiamburg/sniffROM/wiki) for documentation
-
-
-SPI Flash Reference: https://www.optiv.com/blog/demystifying-hardware-security-part-ii <br>
