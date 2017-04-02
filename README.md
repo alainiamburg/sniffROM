@@ -26,6 +26,5 @@ optional arguments:
 ```
 See [Wiki](https://github.com/alainiamburg/sniffROM/wiki) for documentation
 
-Reference: https://www.optiv.com/blog/demystifying-hardware-security-part-ii <br>
 
-JEDEC Manufacturer IDs: http://www.idhw.com/textual/chip/jedec_spd_man.html
+SPI Flash Reference: https://www.optiv.com/blog/demystifying-hardware-security-part-ii <br>
