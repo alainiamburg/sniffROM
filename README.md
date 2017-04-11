@@ -3,15 +3,15 @@ A tool for passive data capture and reconnaissance of flash chips. It is used in
 
 * Preserves memory addresses of captured data.
 * Supports binary visualization of reconstructed image.
-* Currently supports SPI flash chips.
-* Recognizes many SPI flash commands across different chip vendors
+* Currently supports SPI and I²C flash chips.
+* Recognizes most SPI flash commands across different chip vendors
 ```
 usage: sniffROM.py [-h] [--addrlen [{2,3}]] [--endian [{msb,lsb}]]
                    [--filter [{r,w,rw}]] [-o [O]] [--summary] [-v]
                    input_file
 
 positional arguments:
-  input_file            Saleae Logic SPI Analyzer Export File (.csv)
+  input_file            Saleae Logic SPI/I²C Analyzer Export File (.csv)
 
 optional arguments:
   -h, --help            show this help message and exit
