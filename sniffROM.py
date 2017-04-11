@@ -19,7 +19,7 @@ import numpy as np
 
 
 FLASH_PADDED_SIZE = 20000000     # hacky flash image start size, make this better. auto detect chip size (via JEDEC ID) and adjust accordingly?
-FLASH_FILL_BYTE = 0xFF
+FLASH_FILL_BYTE = 0xF0
 FLASH_ENDING_SIZE = FLASH_WRITES_ENDING_SIZE = FLASH_PADDED_SIZE
 GRAPH_BYTES_PER_ROW = 2048
 
