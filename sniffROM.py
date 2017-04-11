@@ -160,8 +160,8 @@ def print_data(data, addr):
 	dump(str(data), 16, addr)
 						
 
-parser = argparse.ArgumentParser(description="sniffROM - Reconstructs flash memory contents from passively captured READ/WRITE commands in a Saleae logic analyzer exported capture file. Currently supports SPI flash chips.")
-parser.add_argument("input_file", help="Saleae Logic SPI Analyzer Export File (.csv)")
+parser = argparse.ArgumentParser(description="sniffROM - Reconstructs flash memory contents from passively captured READ/WRITE commands in a Saleae logic analyzer exported capture file. Currently supports SPI and I2C flash chips.")
+parser.add_argument("input_file", help="Saleae Logic SPI/I2C Analyzer Export File (.csv)")
 parser.add_argument("--addrlen", type=int, choices=[2,3,4], nargs="?", default=3, help="Length of address in bytes (default is 3)")
 parser.add_argument("--endian", choices=["msb", "lsb"], nargs="?", default="msb", help="Endianness of address bytes (default is msb first)")
 parser.add_argument("--filter", choices=["r", "w", "rw"], nargs="?", default="rw", help="Parse READ, WRITE, or READ and WRITE commands (default is rw)")
