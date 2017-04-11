@@ -11,7 +11,7 @@ usage: sniffROM.py [-h] [--addrlen [{2,3}]] [--endian [{msb,lsb}]]
                    input_file
 
 positional arguments:
-  input_file            Saleae Logic SPI/I²C Analyzer Export File (.csv)
+  input_file            Saleae Logic SPI/I2C Analyzer Export File (.csv)
 
 optional arguments:
   -h, --help            show this help message and exit
