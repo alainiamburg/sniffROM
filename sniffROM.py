@@ -212,8 +212,8 @@ with open(args.input_file, 'rb') as infile:
 					if args.v > 1:  # TODO this should probably print after each new Packet ID, but you have to deal with offsets differently
 						#print_data(offset)  #flash_image[address:address+offset]
 						print_data(flash_image[address:address+offset], address)  #flash_image[address:address+offset]
-						address = address + offset
-						offset = 0
+					address = address + offset
+					offset = 0
 
 				packet_id = new_packet_id
 				curr_addr_byte = 0
