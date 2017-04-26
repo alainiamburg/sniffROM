@@ -112,7 +112,7 @@ def print_new_cmd(command):
 	if ((("r" in args.filter) and (spi_commands[command][1] == "READ")) or
 		(("w" in args.filter) and (spi_commands[command][1] == "WRITE"))):
 		print 'Time: {0:.8f}   Packet ID: {1:5}   Command: 0x{2:02x} - {3}'.format(
-						packet_time, packet_id, command, spi_commands[command][0])
+				packet_time, packet_id, command, spi_commands[command][0])
 
 
 flash_image = bytearray([FLASH_FILL_BYTE] * FLASH_PADDED_SIZE)
@@ -185,7 +185,7 @@ for packet in packets:
 				address = (address_bytes[0] << 8) + (address_bytes[1])
 				if args.v > 0:
 					print 'Time: {0:.8f}   Packet ID: {1:5}   Read Data @ 0x{2:02x}'.format(
-														packet_time, packet_id, address)
+							packet_time, packet_id, address)
 			else:
 				curr_addr_byte += 1
 		elif new_command == "Read":
@@ -194,7 +194,7 @@ for packet in packets:
 			if flash_image[address+offset] != FLASH_FILL_BYTE:
 				if args.v > 2:
 					print ' [*] Memory address 0x{:02x} was accessed more than once.'.format(
-																		address+offset)
+								address+offset)
 			else:
 				bytes_sniffed += 1
 			flash_image[address+offset] = read_byte
@@ -221,7 +221,7 @@ for packet in packets:
 				command = -1
 				if args.v > 0:
 					print 'Time: {0:.8f}   Packet ID: {1:5}   Command: 0x{2:02x} - Unknown'.format(
-													packet_time, packet_id, new_command)
+							packet_time, packet_id, new_command)
 			else:
 				command = new_command
 				spi_commands[command][2] += 1
@@ -243,7 +243,7 @@ for packet in packets:
 						if flash_image[address+offset] != FLASH_FILL_BYTE:    # hacky way to check for multiple access to this addr
 							if args.v > 2:
 								print ' [*] Memory address 0x{:02x} was accessed more than once.'.format(
-																		address+offset)
+											address+offset)
 						else:
 							bytes_sniffed += 1
 						flash_image[address+offset] = read_byte
@@ -266,7 +266,7 @@ for packet in packets:
 					if flash_image[address+offset] != FLASH_FILL_BYTE:    # hacky way to check for multiple access to this addr
 						if args.v > 2:
 							print ' [*] Memory address 0x{:02x} was accessed more than once.'.format(
-																		address+offset)
+										address+offset)
 					else:
 						bytes_sniffed += 1
 					flash_image_fromWrites[address+offset] = write_byte    # holds write data separately
