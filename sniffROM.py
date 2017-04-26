@@ -10,14 +10,14 @@ import numpy as np
 
 ## SPI ##
 #
-#   Time [s],Packet ID,MOSI,MISO
-# 0.21347662,        0,0x05,0xFF
+# Time [s],Packet ID,MOSI,MISO
+# 0.21347662,0,0x05,0xFF
 
 ## I2C ##
-#           Time [s],Packet ID,Address,Data,Read/Write,ACK/NAK
-# 46.089097500000001,        0,   0xA0,0x00,     Write,    ACK
-# 46.089121259999999,        0,   0xA0,0x7A,     Write,    ACK
-# 46.089176700000003,        1,   0xA1,0xA5,     Read,     ACK
+# Time [s],Packet ID,Address,Data,Read/Write,ACK/NAK
+# 46.089097500000001,0,0xA0,0x00,Write,CK
+# 46.089121259999999,0,0xA0,0x7A,Write,ACK
+# 46.089176700000003,1,0xA1,0xA5,Read,ACK
 
 
 FLASH_PADDED_SIZE = 20000000     # hacky flash image start size, make this better. auto detect chip size (via JEDEC ID) and adjust accordingly?
