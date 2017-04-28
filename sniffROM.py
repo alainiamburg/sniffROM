@@ -113,6 +113,22 @@ def print_new_cmd(command):
 		print 'Time: {0:.8f}   Packet ID: {1:5}   Command: 0x{2:02x} - {3}'.format(
 				packet_time, packet_id, command, spi_commands[command][0])
 
+def bytes_to_addr(bytes):
+	if args.endian == "msb":
+		if args.addrlen == 4:
+			address = (bytes[0] << 24) + (bytes[1] << 16) + (bytes[2] << 8) + bytes[3]
+		elif args.addrlen == 3:
+			address = (bytes[0] << 16) + (bytes[1] << 8) + bytes[2]
+		elif args.addrlen == 2:
+			address = (bytes[0] << 8) + bytes[1]
+	elif args.endian == "lsb":
+		if args.addrlen == 4:
+			address = (bytes[3] << 24) + (bytes[2] << 16) + (bytes[1] << 8) + bytes[0]
+		elif args.addrlen == 3:
+			address = (bytes[2] << 16) + (bytes[1] << 8) + bytes[0]
+		elif args.addrlen == 2:
+			address = (bytes[1] << 8) + bytes[0]
+	return address
 
 flash_image = bytearray([FLASH_FILL_BYTE] * FLASH_PADDED_SIZE)
 flash_image_fromWrites = bytearray([FLASH_FILL_BYTE] * FLASH_PADDED_SIZE)
@@ -191,7 +207,7 @@ for packet in packets:
 			i2c_read_addr = i2c_addr
 			if flash_image[address+offset] != FLASH_FILL_BYTE:
 				if args.v > 2:
-					print ' [*] Memory address 0x{:02x} was accessed more than once.'.format(
+					print ' [*] Repeated access to memory @ 0x{:02x}'.format(
 								address+offset)
 			else:
 				bytes_sniffed += 1
@@ -234,25 +250,11 @@ for packet in packets:
 					if (command == 0x0b) and (dummy_byte_fastread == True):
 						dummy_byte_fastread = False     # Fast Read command sends a dummy byte (8 clock cycles) after the address
 					else:
-						if args.endian == "msb":
-							if args.addrlen == 4:
-								address = (address_bytes[0] << 24) + (address_bytes[1] << 16) + (address_bytes[2] << 8) + address_bytes[3]
-							elif args.addrlen == 3:
-								address = (address_bytes[0] << 16) + (address_bytes[1] << 8) + address_bytes[2]
-							elif args.addrlen == 2:
-								address = (address_bytes[0] << 8) + address_bytes[1]
-						elif args.endian == "lsb":
-							if args.addrlen == 4:
-								address = (address_bytes[3] << 24) + (address_bytes[2] << 16) + (address_bytes[1] << 8) + address_bytes[0]
-							elif args.addrlen == 3:
-								address = (address_bytes[2] << 16) + (address_bytes[1] << 8) + address_bytes[0]
-							elif args.addrlen == 2:
-								address = (address_bytes[1] << 8) + address_bytes[0]
-						
+						address = bytes_to_addr(address_bytes)
 
 						if flash_image[address+offset] != FLASH_FILL_BYTE:    # hacky way to check for multiple access to this addr
 							if args.v > 2:
-								print ' [*] Memory address 0x{:02x} was accessed more than once.'.format(
+								print ' [*] Repeated access to memory @ 0x{:02x}'.format(
 											address+offset)
 						else:
 							bytes_sniffed += 1
@@ -268,24 +270,11 @@ for packet in packets:
 				write_byte = mosi_data   # the data and addr in a write command goes on MOSI
 				addr_byte = mosi_data
 				if curr_addr_byte == args.addrlen:   # we have the whole address. read data
-					if args.endian == "msb":
-						if args.addrlen == 4:
-							address = (address_bytes[0] << 24) + (address_bytes[1] << 16) + (address_bytes[2] << 8) + address_bytes[3]
-						elif args.addrlen == 3:
-							address = (address_bytes[0] << 16) + (address_bytes[1] << 8) + address_bytes[2]
-						elif args.addrlen == 2:
-							address = (address_bytes[0] << 8) + address_bytes[1]
-					elif args.endian == "lsb":
-						if args.addrlen == 4:
-							address = (address_bytes[3] << 24) + (address_bytes[2] << 16) + (address_bytes[1] << 8) + address_bytes[0]
-						elif args.addrlen == 3:
-							address = (address_bytes[2] << 16) + (address_bytes[1] << 8) + address_bytes[0]
-						elif args.addrlen == 2:
-							address = (address_bytes[1] << 8) + address_bytes[0]
+					address = bytes_to_addr(address_bytes)
 
 					if flash_image[address+offset] != FLASH_FILL_BYTE:    # hacky way to check for multiple access to this addr
 						if args.v > 2:
-							print ' [*] Memory address 0x{:02x} was accessed more than once.'.format(
+							print ' [*] Repeated access to memory @ 0x{:02x}'.format(
 										address+offset)
 					else:
 						bytes_sniffed += 1
