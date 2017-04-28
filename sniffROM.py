@@ -234,10 +234,21 @@ for packet in packets:
 					if (command == 0x0b) and (dummy_byte_fastread == True):
 						dummy_byte_fastread = False     # Fast Read command sends a dummy byte (8 clock cycles) after the address
 					else:
-						if args.endian == "msb":   # TODO add if else for different address byte lengths
-							address = (address_bytes[0] << 16) + (address_bytes[1] << 8) + (address_bytes[2] << 0)
+						if args.endian == "msb":
+							if args.addrlen == 4:
+								address = (address_bytes[0] << 24) + (address_bytes[1] << 16) + (address_bytes[2] << 8) + address_bytes[3]
+							elif args.addrlen == 3:
+								address = (address_bytes[0] << 16) + (address_bytes[1] << 8) + address_bytes[2]
+							elif args.addrlen == 2:
+								address = (address_bytes[0] << 8) + address_bytes[1]
 						elif args.endian == "lsb":
-							address = (address_bytes[2] << 16) + (address_bytes[1] << 8) + (address_bytes[0] << 0)
+							if args.addrlen == 4:
+								address = (address_bytes[3] << 24) + (address_bytes[2] << 16) + (address_bytes[1] << 8) + address_bytes[0]
+							elif args.addrlen == 3:
+								address = (address_bytes[2] << 16) + (address_bytes[1] << 8) + address_bytes[0]
+							elif args.addrlen == 2:
+								address = (address_bytes[1] << 8) + address_bytes[0]
+						
 
 						if flash_image[address+offset] != FLASH_FILL_BYTE:    # hacky way to check for multiple access to this addr
 							if args.v > 2:
@@ -258,9 +269,19 @@ for packet in packets:
 				addr_byte = mosi_data
 				if curr_addr_byte == args.addrlen:   # we have the whole address. read data
 					if args.endian == "msb":
-						address = (address_bytes[0] << 16) + (address_bytes[1] << 8) + (address_bytes[2] << 0)
+						if args.addrlen == 4:
+							address = (address_bytes[0] << 24) + (address_bytes[1] << 16) + (address_bytes[2] << 8) + address_bytes[3]
+						elif args.addrlen == 3:
+							address = (address_bytes[0] << 16) + (address_bytes[1] << 8) + address_bytes[2]
+						elif args.addrlen == 2:
+							address = (address_bytes[0] << 8) + address_bytes[1]
 					elif args.endian == "lsb":
-						address = (address_bytes[2] << 16) + (address_bytes[1] << 8) + (address_bytes[0] << 0)
+						if args.addrlen == 4:
+							address = (address_bytes[3] << 24) + (address_bytes[2] << 16) + (address_bytes[1] << 8) + address_bytes[0]
+						elif args.addrlen == 3:
+							address = (address_bytes[2] << 16) + (address_bytes[1] << 8) + address_bytes[0]
+						elif args.addrlen == 2:
+							address = (address_bytes[1] << 8) + address_bytes[0]
 
 					if flash_image[address+offset] != FLASH_FILL_BYTE:    # hacky way to check for multiple access to this addr
 						if args.v > 2:
@@ -343,7 +364,7 @@ for packet in packets:
 					if BP2:
 						if BP1:
 							if BP0:
-								print '  |   0-127  | 0x000000 - 0x7FFFFF |    8MB  | ALL            |'
+								print '  |   0-127  | 0x000000 - 0x7FFFFF |    8MB  |   ALL          |'
 							else:
 								if TB:
 									print '  |   0-63  | 0x000000 - 0x3FFFFF |    4MB  |   Lower 1/2    |'
