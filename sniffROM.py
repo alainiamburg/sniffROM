@@ -22,6 +22,7 @@ FLASH_PADDED_SIZE = 20000000     # hacky flash image start size, make this bette
 FLASH_FILL_BYTE = 0x23
 FLASH_ENDING_SIZE = FLASH_WRITES_ENDING_SIZE = FLASH_PADDED_SIZE
 GRAPH_BYTES_PER_ROW = 2048
+INVALID_DATA = -1
 
 spi_commands = {
 #	CMD	DESCRIPTION							R/W	INSTANCES
@@ -97,7 +98,7 @@ def plot_func(x, pos):
 	s = '0x%06x' % (int(x)*GRAPH_BYTES_PER_ROW)
 	return s
 
-def print_data(data, addr):
+def print_data(data, addr, access_type):
 	if offset <= 4:
 		bargraph = "[\033[32;49m*\033[0m-----]"
 	elif offset <= 8:
@@ -111,7 +112,7 @@ def print_data(data, addr):
 	elif offset > 64:
 		bargraph = "[\033[31;49m******\033[0m]"
 		
-	print ' {0} {1} bytes'.format(bargraph, offset)
+	print ' {0} {1} {2} bytes'.format(bargraph, access_type, offset)
 	dump(str(data), 16, addr)
 
 def print_new_cmd(command):
@@ -184,31 +185,53 @@ else:
 print "Parsing {0} data...".format(chip_type)
 for packet in packets:
 	packet_time = float(packet[0])
-	new_packet_id = int(packet[1])
+	if packet[1] != '':
+		new_packet_id = int(packet[1])
+	else:
+		new_packet_id = INVALID_DATA
 	if chip_type == "I2C":
 		i2c_addr = int(packet[2], 16)
-		sdl_data = int(packet[3], 16)
+		if packet[3] != '':
+			sdl_data = int(packet[3], 16)
+		else:
+			sdl_data = INVALID_DATA
 		new_command = packet[4]
 		ack_or_nak = packet[5]
-		if new_packet_id > packet_id:
+		if new_packet_id == INVALID_DATA or new_packet_id > packet_id:
 			if offset > 0:
 				if args.v > 1:
-					print_data(flash_image[address:address+offset], address)
+					if write_byte != INVALID_DATA and read_byte == INVALID_DATA:
+						print_data(flash_image_fromWrites[address:address+offset], address, "Write")
+					elif write_byte == INVALID_DATA and read_byte != INVALID_DATA:
+						print_data(flash_image[address:address+offset], address, "Read")
 				address = address + offset
 				offset = 0
-			packet_id = new_packet_id
 			curr_addr_byte = 0
-		if new_command == "Write":
-			addr_byte = sdl_data         # assume writing start addr for subsequent read cmd
-			i2c_write_addr = i2c_addr
-			address_bytes[curr_addr_byte] = addr_byte
-			if curr_addr_byte == 1:
-				address = (address_bytes[0] << 8) + (address_bytes[1])
-				if args.v > 0:
-					print 'Time: {0:.8f}   Packet ID: {1:5}   Read Data @ 0x{2:02x}'.format(
-							packet_time, packet_id, address)
+			read_byte = INVALID_DATA
+			write_byte = INVALID_DATA
+			if new_packet_id == INVALID_DATA:
+				print 'Time: {0:.8f}   Packet ID:         Skip Packet (missing ID)'.format(packet_time)
+				continue
 			else:
+				packet_id = new_packet_id
+		if new_command == "Write":
+			if curr_addr_byte != 2:
+				addr_byte = sdl_data         # assume writing start addr for subsequent read cmd
+				i2c_write_addr = i2c_addr
+				address_bytes[curr_addr_byte] = addr_byte
+				if curr_addr_byte == 1:
+					address = (address_bytes[0] << 8) + (address_bytes[1])
+					if args.v > 0:
+						print 'Time: {0:.8f}   Packet ID: {1:5}   Access Data @ 0x{2:02x}'.format(
+								packet_time, packet_id, address)
 				curr_addr_byte += 1
+			else:
+				write_byte = sdl_data
+				i2c_write_addr = i2c_addr
+				flash_image_fromWrites[address+offset] = write_byte    # holds write data separately
+				bytes_sniffed_written += 1
+				mapping_image[address+offset] = 2
+				offset += 1
 		elif new_command == "Read":
 			read_byte = sdl_data
 			i2c_read_addr = i2c_addr
@@ -228,7 +251,7 @@ for packet in packets:
 		if new_packet_id > packet_id:    # IF WE GOT A NEW COMMAND INSTANCE (new Packet ID according to Saleae SPI analyzer)
 			if offset > 0:               # the new packet ID tells us the last command is finished,
 				if args.v > 1:           # so dump remaining data from last command, if any
-					print_data(flash_image[address:address+offset], address)
+					print_data(flash_image[address:address+offset], address, "")
 					offset = 0
 			packet_id = new_packet_id
 			new_command = mosi_data
@@ -419,7 +442,13 @@ for packet in packets:
 					print '  +---------+---------------------+---------+----------------+'
 if offset > 0:
 	if args.v > 1:
-		print_data(flash_image[address:address+offset], address+offset)
+		if chip_type == "I2C":
+			if write_byte != INVALID_DATA and read_byte == INVALID_DATA:
+				print_data(flash_image_fromWrites[address:address+offset], address, "Write")
+			elif write_byte == INVALID_DATA and read_byte != INVALID_DATA:
+				print_data(flash_image[address:address+offset], address, "Read")
+		else:
+			print_data(flash_image[address:address+offset], address+offset, "")
 		offset = 0
 print 'Finished parsing input file'
 print 'Trimming pad bytes...\n'          # trim extra padding bytes (might lose valid data - if so edit FLASH_FILL_BYTE). this assumes last byte is a padding byte
