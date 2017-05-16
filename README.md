@@ -1,5 +1,5 @@
 # sniffROM
-A tool for passive data capture and reconnaissance of flash chips. It is used in conjunction with a Saleae logic analyzer to reconstruct flash memory contents and extract contextual information about device operations.
+A tool for passive data capture and reconnaissance of serial flash chips. It is used in conjunction with a Saleae logic analyzer to reconstruct flash memory contents and extract contextual information about device operations.
 
 * Supports SPI and I²C flash chips.
 * Recognizes most flash commands across different chip vendors.
