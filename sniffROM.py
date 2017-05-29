@@ -26,65 +26,133 @@ INVALID_DATA = -1
 
 spi_commands = {
 #	CMD	DESCRIPTION							R/W	INSTANCES
-	0x00: ["No Operation", 							"READ", 	0],
-	0x01: ["Write Status Register 1", 					"WRITE", 	0],
-	0x02: ["Page Program", 							"WRITE", 	0],
-	0x03: ["Read Data", 							"READ", 	0],
-	0x04: ["Write Disable", 						"WRITE", 	0],
-	0x05: ["Read Status Register 1", 					"READ", 	0],
-	0x06: ["Write Enable", 							"WRITE", 	0],
-	0x07: ["Read Status Register 2", 					"READ", 	0],
-	0x0B: ["Fast Read Data", 						"READ", 	0],
-	0x0C: ["Fast Read Data (4-byte address)", 				"READ", 	0],
-	0x11: ["Write Status Register 3", 					"WRITE", 	0],
-	0x12: ["Page Program (4-byte address)", 				"WRITE", 	0],
-	0x13: ["Read Data (4-byte address)", 					"READ", 	0],
-	0x14: ["AutoBoot Register Read", 					"READ", 	0],
-	0x15: ["AutoBoot Register Write", 					"WRITE", 	0],
-	0x16: ["Bank Register Read", 						"READ", 	0],
-	0x17: ["Bank Register Write", 						"WRITE", 	0],
-	0x20: ["Sector Erase (4K)", 						"WRITE", 	0],
-	0x27: ["Read Password Register", 					"READ", 	0],
-	0x28: ["Write Password Register", 					"WRITE", 	0],
-	0x29: ["Password Unlock", 						"WRITE", 	0],
-	0x2B: ["Read Security Register", 					"READ", 	0],
-	0x2C: ["Write Lock Register", 						"WRITE", 	0],
-	0x2D: ["Read Lock Register", 						"READ", 	0],
-	0x2F: ["Write Security Register", 					"WRITE", 	0],
-	0x31: ["Write Status Register 2",					"WRITE",	0],
-	0x32: ["Page Program (Quad I/O)", 					"WRITE", 	0],
-	0x33: ["Read Status Register 3", 					"READ", 	0],
-	0x34: ["Page Program (Quad I/O, 4-byte address)", 			"WRITE", 	0],
-	0x35: ["Enter QPI Mode", 						"WRITE", 	0],
-	0x38: ["Page Program (Quad I/O)", 					"WRITE", 	0],
-	0x42: ["Program Security Register / One Time Program (OTP) array", 	"WRITE", 	0],
-	0x44: ["Erase Security Register / One Time Program (OTP) array", 	"WRITE", 	0],
-	0x48: ["Read Security Register", 					"READ", 	0],
-	0x4B: ["Read Unique ID / One Time Program (OTP) Array",			"READ", 	0],
-	0x50: ["Write Enable for Volatile Status Register", 			"WRITE", 	0],
-	0x52: ["Block Erase (32KB)", 						"WRITE", 	0],
-	0x5A: ["Read Serial Flash Discoverable Parameters (SFDP) Register",	"READ", 	0],
-	0x60: ["Chip Erase", 							"WRITE", 	0],
-	0x66: ["Enable Reset", 							"WRITE", 	0],
-	0x68: ["Write Protect Selection", 					"WRITE", 	0],
-	0x90: ["Read Manufacturer ID / Device ID", 				"READ", 	0],
-	0x92: ["Read Manufacturer ID / Device ID (Dual I/O)", 			"READ", 	0],
-	0x94: ["Read Manufacturer ID / Device ID (Quad I/O)", 			"READ", 	0],
-	0x98: ["Whole Chip Unlock/Unprotect", 					"WRITE", 	0],
-	0x99: ["Reset Device", 							"WRITE", 	0],
-	0x9F: ["Read JEDEC ID", 						"READ", 	0],
-	0xAB: ["Release Power-Down / Device ID", 				"READ", 	0],
-	0xB9: ["Power Down", 							"WRITE", 	0],
-	0xC7: ["Chip Erase", 							"WRITE", 	0],
-	0xD8: ["Block Erase (64KB)", 						"WRITE", 	0],
-	0xE0: ["Read Dynamic Protection Bit (DYB)", 				"READ", 	0],
-	0xE1: ["Write Dynamic Protection Bit (DYB)", 				"WRITE", 	0],
-	0xE2: ["Read Persistent Protection Bit (PPB)", 				"READ", 	0],
-	0xE3: ["Program Persistent Protection Bit (PPB)", 			"WRITE", 	0],
-	0xE4: ["Erase Persistent Protection Bit (PPB)", 			"WRITE", 	0],
-	0xE7: ["Password Read", 						"READ", 	0],
-	0xE8: ["Password Program", 						"WRITE", 	0],
-	0xE9: ["Password Unlock", 						"WRITE", 	0]}
+	0x00: ["No Operation", 							"Read", 	0],
+	0x01: ["Write Status Register 1", 					"Write", 	0],
+	0x02: ["Page Program", 							"Write", 	0],
+	0x03: ["Read Data", 							"Read", 	0],
+	0x04: ["Write Disable", 						"Write", 	0],
+	0x05: ["Read Status Register 1", 					"Read", 	0],
+	0x06: ["Write Enable", 							"Write", 	0],
+	0x07: ["Read Status Register 2", 					"Read", 	0],
+	0x0B: ["Fast Read Data", 						"Read", 	0],
+	0x0C: ["Fast Read Data (4-byte address)", 				"Read", 	0],
+	0x11: ["Write Status Register 3", 					"Write", 	0],
+	0x12: ["Page Program (4-byte address)", 				"Write", 	0],
+	0x13: ["Read Data (4-byte address)", 					"Read", 	0],
+	0x14: ["AutoBoot Register Read", 					"Read", 	0],
+	0x15: ["AutoBoot Register Write", 					"Write", 	0],
+	0x16: ["Bank Register Read", 						"Read", 	0],
+	0x17: ["Write Fast Boot Register", 					"Write", 	0],
+	0x18: ["Erase Fast Boot Register",					"Write",        0],
+	0x1B: ["Fast Read Data",						"Write",        0],
+	0x20: ["Sector Erase (4K)", 						"Write", 	0],
+	0x21: ["Sector Erase (4K) (4-byte address)",				"Write",	0],
+	0x27: ["Read Password Register", 					"Read", 	0],
+	0x28: ["Write Password Register", 					"Write", 	0],
+	0x29: ["Password Unlock", 						"Write", 	0],
+	0x2B: ["Read Security Register", 					"Read", 	0],
+	0x2C: ["Write Lock Register", 						"Write", 	0],
+	0x2D: ["Read Lock Register", 						"Read", 	0],
+	0x2F: ["Write Security Register", 					"Write", 	0],
+	0x30: ["Clear/Reset Fail Flags / Resume Program",			"Write",	0],
+	0x31: ["Write Status Register 2",					"Write",	0],
+	0x32: ["Page Program (Quad I/O)", 					"Write", 	0],
+	0x33: ["Read Status Register 3", 					"Read", 	0],
+	0x34: ["Page Program (Quad I/O, 4-byte address)", 			"Write", 	0],
+	0x35: ["Enter QPI Mode", 						"Write", 	0],
+	0x36: ["Single Block Lock/Protect",					"Write",	0],
+	0x38: ["Page Program (Quad I/O)", 					"Write", 	0],
+	0x39: ["Single Block Unlock/Unprotect",					"Write",	0],
+	0x3A: ["Enter OTP Mode",						"Write",	0],
+	0x3B: ["Read Data (Dual I/O)",						"Read",		0],
+	0x3C: ["Read Data (Dual I/O) (4-byte address)",				"Read",		0],
+	0x3D: ["Read Block Lock",						"Read",		0],
+	0x3E: ["Page Program (Quad I/O) (4-byte address)",			"Write",	0],
+	0x40: ["Sector Erase (2x 4K)",						"Write",	0],
+	0x41: ["Read Data Learning Register",					"Read",		0],
+	0x42: ["Program Security Register / One Time Program (OTP) array", 	"Write", 	0],
+	0x43: ["Program Non-Volatile Data Learning Register",			"Write",	0],
+	0x44: ["Erase Security Register / One Time Program (OTP) array", 	"Write", 	0],
+	0x45: ["Exit x8 Parallel Mode",						"Write",	0],
+	0x48: ["Read Security Register", 					"Read", 	0],
+	0x4A: ["Write Volatile Data Learning Register",				"Write",	0],
+	0x4B: ["Read Unique ID / One Time Program (OTP) Array",			"Read", 	0],
+	0x50: ["Write Enable for Volatile Status Register", 			"Write", 	0],
+	0x52: ["Block Erase (32KB)", 						"Write", 	0],
+	0x55: ["Enter x8 Parallel Mode",					"Write",	0],
+	0x5A: ["Read Serial Flash Discoverable Parameters (SFDP) Register",	"Read", 	0],
+	0x60: ["Chip Erase", 							"Write", 	0],
+	0x61: ["Write Volatile Enhanced Configuration Register",		"Write",	0],
+	0x65: ["Read Volatile Enhanced Configuration Register",			"Read",		0],
+	0x66: ["Enable Reset", 							"Write", 	0],
+	0x68: ["Write Protect Selection", 					"Write", 	0],
+	0x6B: ["Read Data (Quad I/O)",						"Read",		0],
+	0x6C: ["Read Data (Quad I/O) (4-byte address)",				"Read",		0],
+	0x70: ["Enable SO to Output RY/BY# During CP Mode",			"Write",	0],
+	0x75: ["Erase / Program Suspend",					"Write",	0],
+	0x77: ["Set Burst With Wrap",						"Write",	0],
+	0x7A: ["Erase / Program Resume",					"Write",	0],
+	0x7E: ["Enable Write Protection (Whole Chip)",				"Write",	0],
+	0x80: ["Disable SO to Output RY/BY# During CP Mode",			"Write",	0],
+	0x81: ["Write Volatile Configuration Register",				"Write",	0],
+	0x85: ["Read Volatile Configuration Register / Program Suspend",	"Read",		0],
+	0x88: ["Read Security ID",						"Read",		0],
+	0x8A: ["Program Resume",						"Write",	0],
+	0x8C: ["Burst Read Data with Wrap for Lower 128Mb",			"Read",		0],
+	0x8D: ["Burst Read Data with Wrap for Higher 128Mb",			"Read",		0],
+	0x90: ["Read Manufacturer ID / Device ID", 				"Read", 	0],
+	0x92: ["Read Manufacturer ID / Device ID (Dual I/O)", 			"Read", 	0],
+	0x94: ["Read Manufacturer ID / Device ID (Quad I/O)", 			"Read", 	0],
+	0x98: ["Disable Write Protection (Whole Chip)", 			"Write", 	0],
+	0x99: ["Reset Device", 							"Write", 	0],
+	0x9B: ["Program OTP Security Register",					"Write",	0],
+	0x9F: ["Read JEDEC ID", 						"Read", 	0],
+	0xA2: ["Page Program (Dual Input)",					"Write",	0],
+	0xA3: ["Enable High Performance Mode (Quad I/O)",			"Write",	0],
+	0xA5: ["Program User Security ID",					"Write",	0],
+	0xA6: ["Lock Bit Write",						"Write",	0],
+	0xA7: ["Lock Bit Read",							"Read",		0],
+	0xAA: ["Enable HOLD# Pin Functionality of RST#/HOLD# Pin",		"Write",	0],
+	0xAB: ["Release Power-Down / Device ID", 				"Read", 	0],
+	0xAD: ["Continuously Program (CP) Mode",				"Write",	0],
+	0xAF: ["Read ID (QPI Mode)",						"Read",		0],
+	0xB0: ["Suspend Program/Erase",						"Write",	0],
+	0xB1: ["Enter Secured OTP Mode / Write NV Configuration Register",	"Write",	0],
+	0xB5: ["Read NV Configuration Register",				"Read",		0],
+	0xB7: ["Enable 4-byte Mode",						"Write",	0],
+	0xB9: ["Power Down", 							"Write", 	0],
+	0xBB: ["Read Data (2x I/O)",						"Read",		0],
+	0xBC: ["Read Data (2x I/O) (4-byte address)",				"Read",		0],
+	0xBD: ["Read Data (Dual I/O) (Double Transfer Rate)",			"Read",		0],
+	0xC0: ["Set Burst Length / Set Read Parameters",			"Write",	0],
+	0xC1: ["Exit Secured OTP Mode",						"Write",	0],
+	0xC5: ["Write Extended Address Register",				"Write",	0],
+	0xC7: ["Chip Erase", 							"Write", 	0],
+	0xC8: ["Read Extended Address Register",				"Read",		0],
+	0xCF: ["Read MFG ID / Device ID (4x I/O) (Double Transfer Rate)",	"Read",		0],
+	0xD0: ["Resume Program/Erase",						"Write",	0],
+	0xD2: ["Extended Fast Program (Dual Input)",				"Write",	0],
+	0xD8: ["Block Erase (64/256KB)", 					"Write", 	0],
+	0xDC: ["Block Erase (64/256KB) (4-byte address)",			"Write",	0],
+	0xDF: ["Read MFG ID / Device ID (4x I/O)",				"Read",		0],
+	0xE0: ["Read Dynamic Protection Bit (DYB)", 				"Read", 	0],
+	0xE1: ["Write Dynamic Protection Bit (DYB)", 				"Write", 	0],
+	0xE2: ["Read Persistent Protection Bit (PPB)", 				"Read", 	0],
+	0xE3: ["Program Persistent Protection Bit (PPB)", 			"Write", 	0],
+	0xE4: ["Erase Persistent Protection Bit (PPB)", 			"Write", 	0],
+	0xE5: ["Write Lock Register",						"Write",	0],
+	0xE6: ["Reserved",							"Read",		0],
+	0xE7: ["Password Read", 						"Read", 	0],
+	0xE8: ["Password Program / Read Lock Register", 			"Write", 	0],
+	0xE9: ["Password Unlock", 						"Write", 	0],
+	0xEA: ["Read Data (Quad I/O) from top 128Mb",				"Read",		0],
+	0xEB: ["Read Data (Quad I/O) from bottom 128Mb",			"Read",		0],
+	0xEC: ["Read Data (Quad I/O) (4-byte address)",				"Read",		0],
+	0xED: ["Read Data (Dual I/O) (Quad Transfer Rate)",			"Read",		0],
+	0xEF: ["Read MFG ID / Device ID (2x I/O)",				"Read",		0],
+	0xF0: ["Reset",								"Write",	0],
+	0xF5: ["Exit QPI Mode",							"Write",	0],
+	0xFF: ["Mode Bit Reset / Exit QPI Mode",				"Write",	0]}
 	
 def dump(data, length, addr):
 	hex = lambda line: ' '.join('{:02x}'.format(b) for b in map(ord, line))
@@ -116,8 +184,8 @@ def print_data(data, addr, access_type):
 	dump(str(data), 16, addr)
 
 def print_new_cmd(command):
-	if ((("r" in args.filter) and (spi_commands[command][1] == "READ")) or
-		(("w" in args.filter) and (spi_commands[command][1] == "WRITE"))):
+	if ((("r" in args.filter) and (spi_commands[command][1] == "Read")) or
+		(("w" in args.filter) and (spi_commands[command][1] == "Write"))):
 		print 'Time: {0:.8f}   Packet ID: {1:5}   Command: 0x{2:02x} - {3}'.format(
 				packet_time, packet_id, command, spi_commands[command][0])
 
@@ -157,7 +225,7 @@ parser = argparse.ArgumentParser(description="sniffROM - Reconstructs flash memo
 parser.add_argument("input_file", help="Saleae Logic SPI or I2C Analyzer Export File (.csv)")
 parser.add_argument("--addrlen", type=int, choices=[2,3,4], nargs="?", default=3, help="set length of SPI memory address in bytes (default: 3)")
 parser.add_argument("--endian", choices=["msb", "lsb"], nargs="?", default="msb", help="set endianness of SPI memory bytes (default: msb)")
-parser.add_argument("--filter", choices=["r", "w"], nargs="?", default="rw", help="analyze only READ or WRITE commands (default: both)")
+parser.add_argument("--filter", choices=["r", "w"], nargs="?", default="rw", help="analyze only Read or Write commands (default: both)")
 parser.add_argument("-o", nargs="?", default="output.bin", help="flash image output file name (default: output.bin)")
 parser.add_argument("--summary", help="print summary of sniffed commands and metadata", action="store_true")
 parser.add_argument("--graph", help="show visual representation of flash layout", action="store_true")
@@ -251,7 +319,7 @@ for packet in packets:
 		if new_packet_id > packet_id:    # IF WE GOT A NEW COMMAND INSTANCE (new Packet ID according to Saleae SPI analyzer)
 			if offset > 0:               # the new packet ID tells us the last command is finished,
 				if args.v > 1:           # so dump remaining data from last command, if any
-					print_data(flash_image[address:address+offset], address, "")
+					print_data(flash_image[address:address+offset], address, spi_commands[command][1])
 					offset = 0
 			packet_id = new_packet_id
 			new_command = mosi_data
@@ -448,7 +516,7 @@ if offset > 0:
 			elif write_byte == INVALID_DATA and read_byte != INVALID_DATA:
 				print_data(flash_image[address:address+offset], address, "Read")
 		else:
-			print_data(flash_image[address:address+offset], address+offset, "")
+			print_data(flash_image[address:address+offset], address+offset, spi_commands[command][1])
 		offset = 0
 print 'Finished parsing input file'
 print 'Trimming pad bytes...\n'          # trim extra padding bytes (might lose valid data - if so edit FLASH_FILL_BYTE). this assumes last byte is a padding byte
@@ -463,7 +531,7 @@ try:
 		outfile.write(flash_image_fromWrites[0:FLASH_WRITES_ENDING_SIZE])
 except:
 	print 'Failed to write the output file'
-print 'Rebuilt image: {0} bytes (saved to {1})\nCaptured data: {2} bytes ({3:.2f}%) ({4} bytes from WRITE commands)'.format(
+print 'Rebuilt image: {0} bytes (saved to {1})\nCaptured data: {2} bytes ({3:.2f}%) ({4} bytes from Write commands)'.format(
 		FLASH_ENDING_SIZE, args.o, bytes_sniffed, ((bytes_sniffed / float(FLASH_ENDING_SIZE)) * 100.0), bytes_sniffed_written)
 
 if args.summary:
