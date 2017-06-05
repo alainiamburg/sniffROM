@@ -2,8 +2,6 @@ import argparse, csv, sys
 import matplotlib
 from matplotlib import pyplot
 from matplotlib import ticker
-#import numpy as np
-import datetime
 
 ### Logic export csv file formats:
 
@@ -186,7 +184,7 @@ def print_data(data, addr, access_type):
 def print_new_cmd(command):
 	if ((("r" in args.filter) and (spi_commands[command][1] == "Read")) or
 		(("w" in args.filter) and (spi_commands[command][1] == "Write"))):
-		print 'Time: {0:.8f}   Packet ID: {1:5}   Command: 0x{2:02x} - {3}'.format(
+		print 'Time: {0:.8f}   Packet ID: {1:7}   Command: 0x{2:02X} - {3}'.format(
 				packet_time, packet_id, command, spi_commands[command][0])
 
 def bytes_to_addr(bytes):
@@ -219,6 +217,8 @@ jedec_id = bytearray([0x00] * 5)
 device_id = 0x00
 i2c_read_addr = 0x00
 i2c_write_addr = 0x00
+i2c_reads = 0
+i2c_writes = 0
 
 
 parser = argparse.ArgumentParser(description="sniffROM - Reconstructs flash memory contents and extracts other data from passively sniffed commands in a Saleae logic analyzer capture file. Currently supports SPI and I2C flash chips.")
@@ -267,10 +267,13 @@ for packet in packets:
 		ack_or_nak = packet[5]
 		if new_packet_id == INVALID_DATA or new_packet_id > packet_id:
 			if offset > 0:
-				if args.v > 1:
-					if write_byte != INVALID_DATA and read_byte == INVALID_DATA:
+				if write_byte != INVALID_DATA and read_byte == INVALID_DATA:
+					i2c_writes += 1
+					if args.v > 1:
 						print_data(flash_image_fromWrites[address:address+offset], address, "Write")
-					elif write_byte == INVALID_DATA and read_byte != INVALID_DATA:
+				elif write_byte == INVALID_DATA and read_byte != INVALID_DATA:
+					i2c_reads += 1
+					if args.v > 1:
 						print_data(flash_image[address:address+offset], address, "Read")
 				address = address + offset
 				offset = 0
@@ -290,7 +293,7 @@ for packet in packets:
 				if curr_addr_byte == 1:
 					address = (address_bytes[0] << 8) + (address_bytes[1])
 					if args.v > 0:
-						print 'Time: {0:.8f}   Packet ID: {1:5}   Access Data @ 0x{2:02x}'.format(
+						print 'Time: {0:.8f}   Packet ID: {1:7}   Access Data @ 0x{2:02x}'.format(
 								packet_time, packet_id, address)
 				curr_addr_byte += 1
 			else:
@@ -332,7 +335,7 @@ for packet in packets:
 				unknown_commands += 1
 				command = -1
 				if args.v > 0:
-					print 'Time: {0:.8f}   Packet ID: {1:5}   Command: 0x{2:02x} - Unknown'.format(
+					print 'Time: {0:.8f}   Packet ID: {1:7}   Command: 0x{2:02X} - Unknown'.format(
 							packet_time, packet_id, new_command)
 			else:
 				command = new_command
@@ -389,7 +392,7 @@ for packet in packets:
 			if dummy_bytes_rpddid == 3:    # If this command is followed by 3 dummy bytes,
 				device_id = read_byte      #  then it is a Device ID command
 				if args.v > 0:
-					print ' [+] Device ID: {0}'.format(hex(device_id))
+					print ' [+] Device ID: 0x{0:02X}'.format(int(device_id))
 			else:
 				dummy_bytes_rpddid += 1
 		elif command == 0x9f:            # read JEDEC ID (1 byte MFG ID, and 1-3 byte Device ID)
@@ -399,8 +402,8 @@ for packet in packets:
 				curr_id_byte += 1
 			else:
 				if args.v > 0:
-					print ' [+] Manufacturer ID: {0}'.format(hex(jedec_id[0]))
-					print ' [+] Device ID: {0} {1}'.format(hex(jedec_id[1]), hex(jedec_id[2]))
+					print ' [+] Manufacturer ID: 0x{0:02X}'.format(int(jedec_id[0]))
+					print ' [+] Device ID: 0x{0:02X}{1:02X}'.format(int(jedec_id[1]), int(jedec_id[2]))
 		elif (command == 0x01 or      # Write Status Register 1
 			  command == 0x05):       # Read Status Register 1
 			write_byte = mosi_data if command == 0x01 else miso_data
@@ -429,7 +432,7 @@ for packet in packets:
 
 			if args.v > 1:
 				print '  +----------------------------------------------------------+'
-				print '  |                 Status Register 1 = 0x{:02x}                 |'.format(SR1)
+				print '  |                 Status Register 1 = 0x{:02X}                 |'.format(SR1)
 				print '  +-----+------+-------------------------------+-------------+'
 				print '  | Bit | Name | Description                   | Value       |'
 				print '  +-----+------+-------------------------------+-------------+'
@@ -527,8 +530,8 @@ while ((flash_image_fromWrites[FLASH_WRITES_ENDING_SIZE-1] == FLASH_FILL_BYTE) a
 try:
 	with open(args.o, 'wb') as outfile:
 		outfile.write(flash_image[0:FLASH_ENDING_SIZE])
-	with open('out_write.bin', 'wb') as outfile:
-		outfile.write(flash_image_fromWrites[0:FLASH_WRITES_ENDING_SIZE])
+	#with open('out_write.bin', 'wb') as outfile:
+	#	outfile.write(flash_image_fromWrites[0:FLASH_WRITES_ENDING_SIZE])
 except:
 	print 'Failed to write the output file'
 print 'Rebuilt image: {0} bytes (saved to {1})\nCaptured data: {2} bytes ({3:.2f}%) ({4} bytes from Write commands)'.format(
@@ -537,24 +540,28 @@ print 'Rebuilt image: {0} bytes (saved to {1})\nCaptured data: {2} bytes ({3:.2f
 if args.summary:
 	print '\nSummary:\n'
 	if jedec_id[0]:
-		print 'Manufacturer ID: {0}'.format(hex(jedec_id[0]))
-		print 'Device ID: {0} {1}\n'.format(hex(jedec_id[1]), hex(jedec_id[2]))
+		print 'Mfr. ID: 0x{0:02X}'.format(int(jedec_id[0]))
+		print 'Device ID: 0x{0:02X}{1:02X}\n'.format(int(jedec_id[1]), int(jedec_id[2]))
 	if device_id:
-		print 'Device ID: {0}\n'.format(hex(device_id))
-	if i2c_read_addr:
-		print 'I2C Read Address: {0}'.format(hex(i2c_read_addr))
-	if i2c_write_addr:
-		print 'I2C Write Address: {0}\n'.format(hex(i2c_write_addr))
+		print 'Device ID: 0x{0:02X}\n'.format(int(device_id))
 	if chip_type == "SPI":	
-		print '+---------+-----------+-----------------------------------------------------------+'
-		print '| Command | Instances | Description                                               |'
-		print '+---------+-----------+-----------------------------------------------------------+'
+		print '+------+-----------+-----------------------------------------------------------+'
+		print '| Cmd  | Instances | Description                                               |'
+		print '+------+-----------+-----------------------------------------------------------+'
 		for command in spi_commands:
 			if spi_commands[command][2] > 0:
-				print "| 0x{0:02x}    | {1:9} | {2:57} |".format(command, spi_commands[command][2], spi_commands[command][0])
+				print "| 0x{0:02X} | {1:9} | {2:57} |".format(command, spi_commands[command][2], spi_commands[command][0])
 		if unknown_commands > 0:
-			print "| Unknown | {0:9} |                                                           |".format(unknown_commands)
-		print '+---------+-----------+-----------------------------------------------------------+'
+			print "| Unk. | {0:9} | Unknown Command / Error in Capture                        |".format(unknown_commands)
+		print '+------+-----------+-----------------------------------------------------------+'
+	elif chip_type == "I2C":
+		print '+------+-----------+-----------+'
+		print '| Addr | Instances | Operation |'
+		print '+------+-----------+-----------+'
+		print "| 0x{0:02X} | {1:9} | Read      |".format(i2c_read_addr, i2c_reads)
+		print "| 0x{0:02X} | {1:9} | Write     |".format(i2c_write_addr, i2c_writes)
+		print '+------+-----------+-----------+'
+
 
 if args.graph:
 	print '\nGenerating Graph...'
@@ -582,5 +589,5 @@ if args.graph:
 	axes = pyplot.gca()
 	axes.get_xaxis().set_major_formatter(ticker.FormatStrFormatter("0x%04x"))
 	axes.get_yaxis().set_major_formatter(ticker.FuncFormatter(plot_func))
-	pyplot.savefig('{:%Y%m%d_%H%M%S}.png'.format(datetime.datetime.now()), dpi=fig.dpi, bbox_inches='tight')
+	pyplot.savefig(args.o + '.png', dpi=fig.dpi, bbox_inches='tight')
 	pyplot.show()
