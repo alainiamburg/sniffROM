@@ -2,6 +2,8 @@
 A tool for passive data capture and reconnaissance of serial flash chips. It is used in conjunction with a Saleae logic analyzer to reconstruct flash memory contents and extract contextual information about device operations.
 
 * Supports <b>SPI</b> and <b>I²C</b> flash chips.
+* Preserves actual memory addresses of captured data.
+* Generates graphic visualization of reconstructed binary image.
 * Recognizes <b>100+</b> SPI flash commands from the following manufacturers:
   * Atmel
   * Eon
@@ -12,9 +14,6 @@ A tool for passive data capture and reconnaissance of serial flash chips. It is 
   * Spansion
   * SST
   * Winbond
-  
-* Preserves actual memory addresses of captured data.
-* Generates graphic visualization of reconstructed binary image.
 ```
 usage: sniffROM.py [-h] [--addrlen [{2,3,4}]] [--endian [{msb,lsb}]]
                    [--filter [{r,w}]] [-o [O]] [--summary] [--graph] [-v]
