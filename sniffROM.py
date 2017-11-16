@@ -151,7 +151,7 @@ spi_commands = {
 	0xE6: ["Reserved [Spansion]",						"Read",		0],
 	0xE7: ["Password Read", 						"Read", 	0],
 	0xE8: ["Password Program [Spansion] / Read Lock Register [Numonyx]", 	"Write", 	0],
-	0xE9: ["Password Unlock / Exit 4-byte Mode [Macronix]", 						"Write", 	0],
+	0xE9: ["Password Unlock / Exit 4-byte Mode [Macronix]",			"Write", 	0],
 	0xEA: ["Read Data (Quad I/O) from top 128Mb",				"Read",		0],
 	0xEB: ["Read Data (Quad I/O) from bottom 128Mb",			"Read",		0],
 	0xEC: ["Read Data (Quad I/O) (4-byte address)",				"Read",		0],
