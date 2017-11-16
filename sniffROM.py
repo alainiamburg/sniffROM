@@ -22,6 +22,15 @@ FLASH_ENDING_SIZE = FLASH_WRITES_ENDING_SIZE = FLASH_PADDED_SIZE
 GRAPH_BYTES_PER_ROW = 2048
 INVALID_DATA = -1
 
+chip_vendors = {
+#	MFR ID  NAME
+	0x01:  "Spansion/Cypress",
+	0x1C:  "Eon",
+	0xBF:  "SST/Microchip",
+	0xC2:  "Macronix",
+	0xEF:  "Winbond"
+}
+
 spi_commands = {
 #	CMD	DESCRIPTION							R/W	INSTANCES
 	0x00: ["No Operation", 							"Read", 	0],
@@ -117,7 +126,7 @@ spi_commands = {
 	0xB0: ["Suspend Program/Erase",						"Write",	0],
 	0xB1: ["Enter Secured OTP Mode / Write NV Configuration Register",	"Write",	0],
 	0xB5: ["Read NV Configuration Register",				"Read",		0],
-	0xB7: ["Enable 4-byte Mode",						"Write",	0],
+	0xB7: ["Enter 4-byte Mode",						"Write",	0],
 	0xB9: ["Power Down", 							"Write", 	0],
 	0xBB: ["Read Data (2x I/O)",						"Read",		0],
 	0xBC: ["Read Data (2x I/O) (4-byte address)",				"Read",		0],
@@ -142,7 +151,7 @@ spi_commands = {
 	0xE6: ["Reserved [Spansion]",						"Read",		0],
 	0xE7: ["Password Read", 						"Read", 	0],
 	0xE8: ["Password Program [Spansion] / Read Lock Register [Numonyx]", 	"Write", 	0],
-	0xE9: ["Password Unlock", 						"Write", 	0],
+	0xE9: ["Password Unlock / Exit 4-byte Mode [Macronix]", 						"Write", 	0],
 	0xEA: ["Read Data (Quad I/O) from top 128Mb",				"Read",		0],
 	0xEB: ["Read Data (Quad I/O) from bottom 128Mb",			"Read",		0],
 	0xEC: ["Read Data (Quad I/O) (4-byte address)",				"Read",		0],
@@ -214,6 +223,7 @@ bytes_sniffed = 0                        # this does not count re-reads of same 
 bytes_sniffed_written = 0
 unknown_commands = 0
 jedec_id = bytearray([0x00] * 5)
+EN4B = False
 device_id = 0x00
 i2c_read_addr = 0x00
 i2c_write_addr = 0x00
@@ -346,12 +356,15 @@ for packet in packets:
 			if command == 0xb7:           # Enable 4-byte address mode
 				orig_addrlen = args.addrlen
 				args.addrlen = 4
+				EN4B = True
 				if args.v > 1:
 					print " [*] Address length changed from {0} to {1} bytes".format(orig_addrlen, args.addrlen)
-			elif command == 0xe9:           # Disable 4-byte address mode
-				args.addrlen = orig_addrlen
-				if args.v > 1:
-					print " [*] Address length changed from 4 to {0} bytes".format(orig_addrlen)
+			elif command == 0xe9:
+				if EN4B == True:			# Disable 4-byte address mode
+					args.addrlen = orig_addrlen
+					if args.v > 1:
+						print " [*] Address length changed from 4 to {0} bytes".format(orig_addrlen)
+					EN4B = False
 		elif ((command == 0x03) or       # Read
 			  (command == 0x0b)):        # Fast Read
 			if "r" in args.filter:
@@ -549,7 +562,7 @@ print 'Rebuilt image: {0} bytes (saved to {1})\nCaptured data: {2} bytes ({3:.2f
 if args.summary:
 	print '\nSummary:\n'
 	if jedec_id[0]:
-		print 'Mfr. ID: 0x{0:02X}'.format(int(jedec_id[0]))
+		print 'Mfr. ID: 0x{0:02X} ({1})'.format(int(jedec_id[0]), chip_vendors.get(jedec_id[0], "Unknown"))
 		print 'Device ID: 0x{0:02X}{1:02X}\n'.format(int(jedec_id[1]), int(jedec_id[2]))
 	if device_id:
 		print 'Device ID: 0x{0:02X}\n'.format(int(device_id))
