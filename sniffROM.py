@@ -16,7 +16,7 @@ from matplotlib import ticker
 # 46.089176700000003,1,0xA1,0xA5,Read,ACK
 
 
-FLASH_PADDED_SIZE = 20000000     # hacky flash image start size, make this better. auto detect chip size (via JEDEC ID) and adjust accordingly?
+FLASH_PADDED_SIZE = 40000000     # hacky flash image start size, make this better. auto detect chip size (via JEDEC ID) and adjust accordingly?
 FLASH_FILL_BYTE = 0x23
 FLASH_ENDING_SIZE = FLASH_WRITES_ENDING_SIZE = FLASH_PADDED_SIZE
 GRAPH_BYTES_PER_ROW = 2048
@@ -151,11 +151,11 @@ spi_commands = {
 	0xF0: ["Reset [Atmel/Spansion]",					"Write",	0],
 	0xF5: ["Exit QPI Mode [Macronix]",					"Write",	0],
 	0xFF: ["Mode Bit Reset / Exit QPI Mode",				"Write",	0]}
-	
+
 def dump(data, length, addr):
 	hex = lambda line: ' '.join('{:02x}'.format(b) for b in map(ord, line))
 	str = lambda line: ''.join(31 < c < 127 and chr(c) or '.' for c in map(ord, line))
-	
+
 	for i in range(0, len(data), length):
 		line = data[i:i+length]
 		print('  0x{:08x}   {:47}   {}'.format(addr+i, hex(line), str(line)))
@@ -177,7 +177,7 @@ def print_data(data, addr, access_type):
 		bargraph = "[\033[31;49m*****\033[0m-]"
 	elif offset > 64:
 		bargraph = "[\033[31;49m******\033[0m]"
-		
+
 	print ' {0} {1} {2} bytes'.format(bargraph, access_type, offset)
 	dump(str(data), 16, addr)
 
@@ -242,7 +242,8 @@ except:
 
 if header[2] == "MOSI":
 	chip_type = "SPI"
-	address_bytes = bytearray([0x00] * args.addrlen)
+	address_bytes = bytearray([0x00] * 4)
+	#address_bytes = bytearray([0x00] * args.addrlen)
 elif header[2] == "Address":
 	chip_type = "I2C"
 	address_bytes = bytearray([0x00] * 2)
@@ -342,6 +343,15 @@ for packet in packets:
 				spi_commands[command][2] += 1
 				if args.v > 0:
 					print_new_cmd(command)
+			if command == 0xb7:           # Enable 4-byte address mode
+				orig_addrlen = args.addrlen
+				args.addrlen = 4
+				if args.v > 1:
+					print " [*] Address length changed from {0} to {1} bytes".format(orig_addrlen, args.addrlen)
+			elif command == 0xe9:           # Disable 4-byte address mode
+				args.addrlen = orig_addrlen
+				if args.v > 1:
+					print " [*] Address length changed from 4 to {0} bytes".format(orig_addrlen)
 		elif ((command == 0x03) or       # Read
 			  (command == 0x0b)):        # Fast Read
 			if "r" in args.filter:
@@ -352,7 +362,6 @@ for packet in packets:
 						dummy_byte_fastread = False     # Fast Read command sends a dummy byte (8 clock cycles) after the address
 					else:
 						address = bytes_to_addr(address_bytes)
-
 						if flash_image[address+offset] != FLASH_FILL_BYTE:    # hacky way to check for multiple access to this addr
 							if args.v > 2:
 								print ' [*] Repeated access to memory @ 0x{:02x}'.format(
@@ -386,7 +395,7 @@ for packet in packets:
 					offset += 1
 				else:                    # get the address
 					address_bytes[curr_addr_byte] = addr_byte
-					curr_addr_byte += 1	
+					curr_addr_byte += 1
 		elif command == 0xab:            # Release Power-Down / Device ID
 			read_byte = miso_data
 			if dummy_bytes_rpddid == 3:    # If this command is followed by 3 dummy bytes,
@@ -443,7 +452,7 @@ for packet in packets:
 				print '  |  3  | BP1  | Block Protect Bit 1           | {:d}           |'.format(1 if BP1 else 0)
 				print '  |  2  | BP0  | Block Protect Bit 0           | {:d}           |'.format(1 if BP0 else 0)
 				print '  |  1  | WEL  | Write Enable Latch            | {:d}           |'.format(1 if WEL else 0)
-				print '  |  0  | BUSY | Erase/Write In Progress       | {:d}           |'.format(1 if BUSY else 0)	
+				print '  |  0  | BUSY | Erase/Write In Progress       | {:d}           |'.format(1 if BUSY else 0)
 				print '  +-----+------+-------------------------------+-------------+'
 				if args.v > 2:
 					print '  +----------------------------------------------------------+'
@@ -544,7 +553,7 @@ if args.summary:
 		print 'Device ID: 0x{0:02X}{1:02X}\n'.format(int(jedec_id[1]), int(jedec_id[2]))
 	if device_id:
 		print 'Device ID: 0x{0:02X}\n'.format(int(device_id))
-	if chip_type == "SPI":	
+	if chip_type == "SPI":
 		print '+------+-----------+-----------------------------------------------------------+'
 		print '| Cmd  | Instances | Description                                               |'
 		print '+------+-----------+-----------------------------------------------------------+'
@@ -570,9 +579,9 @@ if args.graph:
 	mapping_bytes = []
 	mapping_rows = FLASH_ENDING_SIZE / GRAPH_BYTES_PER_ROW
 	mapping_remainder = FLASH_ENDING_SIZE % GRAPH_BYTES_PER_ROW
-	
+
 	for row in range(0,mapping_rows):
-		mapping_bytes.append(mapping_image[row*GRAPH_BYTES_PER_ROW:(row*GRAPH_BYTES_PER_ROW)+GRAPH_BYTES_PER_ROW])	
+		mapping_bytes.append(mapping_image[row*GRAPH_BYTES_PER_ROW:(row*GRAPH_BYTES_PER_ROW)+GRAPH_BYTES_PER_ROW])
 
 	cmap = matplotlib.colors.ListedColormap(['black', 'blue', 'red'])
 	bounds=[1,1,2,2]
