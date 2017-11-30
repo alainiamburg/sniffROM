@@ -213,6 +213,19 @@ def bytes_to_addr(bytes):
 			address = (bytes[1] << 8) + bytes[0]
 	return address
 
+def decode_spi_dualio(io0_byte, io1_byte):
+	read_bytes = 0
+	bitcnt = 0
+	while bitcnt < 16:
+		if bitcnt & 1:
+			read_bytes |= ((io1_byte & 1) << bitcnt)
+			io1_byte >>= 1
+		else:
+			read_bytes |= ((io0_byte & 1) << bitcnt)
+			io0_byte >>= 1
+		bitcnt += 1
+	return ((read_bytes >> 8) & 0xFF), read_bytes & 0xFF
+
 flash_image = bytearray([FLASH_FILL_BYTE] * FLASH_PADDED_SIZE)
 flash_image_fromWrites = bytearray([FLASH_FILL_BYTE] * FLASH_PADDED_SIZE)
 mapping_image = bytearray([0] * FLASH_PADDED_SIZE)
@@ -366,27 +379,46 @@ for packet in packets:
 						print " [*] Address length changed from 4 to {0} bytes".format(orig_addrlen)
 					EN4B = False
 		elif ((command == 0x03) or       # Read
-			  (command == 0x0b)):        # Fast Read
+			  (command == 0x0b) or       # Fast Read
+			  (command == 0x3b)):        # Fast Read Dual Output
 			if "r" in args.filter:
-				read_byte = miso_data    # the data in a read command comes on MISO
-				addr_byte = mosi_data
 				if curr_addr_byte == args.addrlen:  # we have the whole address. read data
-					if (command == 0x0b) and (dummy_byte_fastread == True):
+					if (command == 0x0b or command == 0x3b) and (dummy_byte_fastread == True):
 						dummy_byte_fastread = False     # Fast Read command sends a dummy byte (8 clock cycles) after the address
 					else:
 						address = bytes_to_addr(address_bytes)
 						if flash_image[address+offset] != FLASH_FILL_BYTE:    # hacky way to check for multiple access to this addr
 							if args.v > 2:
-								print ' [*] Repeated access to memory @ 0x{:02x}'.format(
-											address+offset)
+								print ' [*] Repeated access to memory @ 0x{:02x}'.format(address+offset)
 						else:
 							bytes_sniffed += 1
-						flash_image[address+offset] = read_byte
-						if mapping_image[address+offset] != 2:
-							mapping_image[address+offset] = 1
-						offset += 1
+						if command == 0x3b:
+							# the data in a read command comes in MOSI and MISO
+							read_byte1, read_byte2 = decode_spi_dualio(mosi_data, miso_data);
+
+							# save first byte
+							flash_image[address+offset] = read_byte1
+							if mapping_image[address+offset] != 2:
+								mapping_image[address+offset] = 1
+							offset += 1
+
+							if flash_image[address+offset] != FLASH_FILL_BYTE:    # hacky way to check for multiple access to this addr
+								if args.v > 2:
+									print ' [*] Repeated access to memory @ 0x{:02x}'.format(address+offset)
+
+							# save second byte
+							flash_image[address+offset] = read_byte2
+							if mapping_image[address+offset] != 2:
+								mapping_image[address+offset] = 1
+							offset += 1
+						else:
+							read_byte = miso_data    # the data in a read command comes on MISO
+							flash_image[address+offset] = read_byte
+							if mapping_image[address+offset] != 2:
+								mapping_image[address+offset] = 1
+							offset += 1
 				else:   # get the address
-					address_bytes[curr_addr_byte] = addr_byte
+					address_bytes[curr_addr_byte] = mosi_data
 					curr_addr_byte += 1
 		elif command == 0x02:	         # Page Program (Write)
 			if "w" in args.filter:
@@ -541,7 +573,7 @@ if offset > 0:
 			elif write_byte == INVALID_DATA and read_byte != INVALID_DATA:
 				print_data(flash_image[address:address+offset], address, "Read")
 		else:
-			print_data(flash_image[address:address+offset], address+offset, spi_commands[command][1])
+			print_data(flash_image[address:address+offset], address, spi_commands[command][1])
 		offset = 0
 print 'Finished parsing input file'
 print 'Trimming pad bytes...\n'          # trim extra padding bytes (might lose valid data - if so edit FLASH_FILL_BYTE). this assumes last byte is a padding byte
