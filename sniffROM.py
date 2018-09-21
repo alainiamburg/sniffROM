@@ -23,13 +23,18 @@ GRAPH_BYTES_PER_ROW = 2048
 INVALID_DATA = -1
 
 chip_vendors = {
-#	MFR ID  NAME
-	0x01:  "Spansion/Cypress",
-	0x1C:  "Eon",
-	0xBF:  "SST/Microchip",
-	0xC2:  "Macronix",
-	0xEF:  "Winbond"
+#       MFR ID  NAME
+        0x01:  "Spansion/Cypress",
+        0x1C:  "Eon",
+        0x1F:  "Atmel",
+        0x20:  "Numonyx/Micron",
+        0xBF:  "SST/Microchip",
+        0xC2:  "Macronix",
+        0xC8:  "GigaDevice",
+        0xEF:  "Winbond",
+        0xF8:  "Fidelix"
 }
+# TODO integrate https://github.com/flashrom/flashrom/blob/staging/flashchips.h
 
 spi_commands = {
 #	CMD	DESCRIPTION							R/W	INSTANCES
