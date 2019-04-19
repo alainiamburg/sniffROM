@@ -248,7 +248,6 @@ i2c_write_addr = 0x00
 i2c_reads = 0
 i2c_writes = 0
 
-
 parser = argparse.ArgumentParser(description="sniffROM - Reconstructs flash memory contents and extracts other data from passively sniffed commands in a Saleae logic analyzer capture file. Currently supports SPI and I2C flash chips.")
 parser.add_argument("input_file", help="Saleae Logic SPI or I2C Analyzer Export File (.csv)")
 parser.add_argument("--addrlen", type=int, choices=[2,3,4], nargs="?", default=3, help="set length of SPI memory address in bytes (default: 3)")
@@ -385,10 +384,12 @@ for packet in packets:
 					EN4B = False
 		elif ((command == 0x03) or       # Read
 			  (command == 0x0b) or       # Fast Read
+			  (command == 0x0c) or       # Fast Read 4-bytes address mode
+			  (command == 0xbb) or       # Read Data (2x I/O)
 			  (command == 0x3b)):        # Fast Read Dual Output
 			if "r" in args.filter:
-				if curr_addr_byte == args.addrlen:  # we have the whole address. read data
-					if (command == 0x0b or command == 0x3b) and (dummy_byte_fastread == True):
+				if (command == 0x0c and curr_addr_byte == 4) or (command != 0x0c and curr_addr_byte == args.addrlen):  # we have the whole address. read data
+					if (command == 0x0b or command == 0x0c or command == 0x3b) and (dummy_byte_fastread == True):
 						dummy_byte_fastread = False     # Fast Read command sends a dummy byte (8 clock cycles) after the address
 					else:
 						address = bytes_to_addr(address_bytes)
@@ -397,7 +398,7 @@ for packet in packets:
 								print ' [*] Repeated access to memory @ 0x{:02x}'.format(address+offset)
 						else:
 							bytes_sniffed += 1
-						if command == 0x3b:
+						if command == 0x3b or command == 0xbb:
 							# the data in a read command comes in MOSI and MISO
 							read_byte1, read_byte2 = decode_spi_dualio(mosi_data, miso_data);
 
@@ -423,8 +424,16 @@ for packet in packets:
 								mapping_image[address+offset] = 1
 							offset += 1
 				else:   # get the address
-					address_bytes[curr_addr_byte] = mosi_data
-					curr_addr_byte += 1
+                                        if command == 0xbb: # 2x I/O means addr use miso and mosi as well
+                                                read_byte1, read_byte2 = decode_spi_dualio(mosi_data, miso_data)
+                                                address_bytes[curr_addr_byte] = read_byte1
+                                                curr_addr_byte += 1
+                                                if (curr_addr_byte < args.addrlen):
+                                                        address_bytes[curr_addr_byte] = read_byte2
+                                                        curr_addr_byte += 1
+                                        else:
+					        address_bytes[curr_addr_byte] = mosi_data
+					        curr_addr_byte += 1
 		elif command == 0x02:	         # Page Program (Write)
 			if "w" in args.filter:
 				write_byte = mosi_data   # the data and addr in a write command goes on MOSI
