@@ -15,9 +15,10 @@ A tool for passive data capture and reconnaissance of serial flash chips. It is 
   * SST
   * Winbond
 ```
-usage: sniffROM.py [-h] [--addrlen [{2,3,4}]] [--endian [{msb,lsb}]]
-                   [--filter [{r,w}]] [-o [O]] [--summary] [--graph] [-v]
-                   input_file
+usage: sniffROM_new.py [-h] [--addrlen [{2,3,4}]] [--endian [{msb,lsb}]]
+                       [--filter [{r,w}]] [-o [O]] [--summary] [--data-map]
+                       [--timing-plot] [-v]
+                       input_file
 
 sniffROM - Reconstructs flash memory contents and extracts other data from
 passively sniffed commands in a Saleae logic analyzer capture file. Currently
@@ -30,10 +31,11 @@ optional arguments:
   -h, --help            show this help message and exit
   --addrlen [{2,3,4}]   set length of SPI memory address in bytes (default: 3)
   --endian [{msb,lsb}]  set endianness of SPI memory bytes (default: msb)
-  --filter [{r,w}]      analyze only READ or WRITE commands (default: both)
+  --filter [{r,w}]      analyze only Read or Write commands (default: both)
   -o [O]                flash image output file name (default: output.bin)
   --summary             print summary of sniffed commands and metadata
-  --graph               show visual representation of flash layout
+  --data-map            show visual data map
+  --timing-plot         show timing analysis
   -v                    increase verbosity (up to -vvv)
 ```
 See [Wiki](https://github.com/alainiamburg/sniffROM/wiki) for documentation
