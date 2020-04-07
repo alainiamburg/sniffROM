@@ -3,7 +3,7 @@ A tool for passive data capture and reconnaissance of serial flash chips. It is 
 
 * Supports <b>SPI</b> and <b>I²C</b> flash chips.
 * Preserves the actual memory addresses of captured data.
-* Generates a visualization of the reconstructed binary image.
+* Generates a visual map of the reconstructed binary image.
 * Generates a timing plot of reads/writes to memory addresses. 
 * Recognizes <b>100+</b> (and currently parses <b>12</b>) SPI flash commands from the following manufacturers:
   * Atmel
