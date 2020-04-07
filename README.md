@@ -16,7 +16,7 @@ A tool for passive data capture and reconnaissance of serial flash chips. It is 
   * SST
   * Winbond
 
-See [Wiki](https://github.com/alainiamburg/sniffROM/wiki) for documentation
+See the [Wiki](https://github.com/alainiamburg/sniffROM/wiki) for documentation
 ```
 usage: sniffROM_new.py [-h] [--addrlen [{2,3,4}]] [--endian [{msb,lsb}]]
                        [--filter [{r,w}]] [-o [O]] [--summary] [--data-map]
