@@ -2,8 +2,9 @@
 A tool for passive data capture and reconnaissance of serial flash chips. It is used in conjunction with a Saleae logic analyzer to reconstruct flash memory contents and extract contextual information about device operations.
 
 * Supports <b>SPI</b> and <b>I²C</b> flash chips.
-* Preserves actual memory addresses of captured data.
-* Generates graphic visualization of reconstructed binary image.
+* Preserves the actual memory addresses of captured data.
+* Generates a visualization of the reconstructed binary image.
+* Generates a timing plot of reads/writes to memory addresses. 
 * Recognizes <b>100+</b> (and currently parses <b>12</b>) SPI flash commands from the following manufacturers:
   * Atmel
   * Eon
