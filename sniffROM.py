@@ -243,6 +243,21 @@ def decode_spi_dualio(io0_byte, io1_byte):
         bitcnt += 1
     return ((read_bytes >> 8) & 0xFF), read_bytes & 0xFF
 
+
+
+parser = argparse.ArgumentParser(description="sniffROM - Reconstructs flash memory contents and extracts other data from passively sniffed commands in a Saleae logic analyzer capture file. Currently supports SPI and I2C flash chips.")
+parser.add_argument("input_file", help="Saleae Logic SPI or I2C Analyzer Export File (.csv)")
+parser.add_argument("--addrlen", type=int, choices=[2,3,4], nargs="?", default=3, help="set length of SPI memory address in bytes (default: 3)")
+parser.add_argument("--endian", choices=["msb", "lsb"], nargs="?", default="msb", help="set endianness of SPI memory bytes (default: msb)")
+parser.add_argument("--filter", choices=["r", "w"], nargs="?", default="rw", help="analyze only Read or Write commands (default: both)")
+parser.add_argument("-o", nargs="?", default="output.bin", help="flash image output file name (default: output.bin)")
+parser.add_argument("--summary", help="print summary of sniffed commands and metadata", action="store_true")
+#parser.add_argument("--colors", help="output color codes", action="store_true")
+parser.add_argument("--data-map", help="show visual data map", action="store_true")
+parser.add_argument("--timing-plot", help="show timing analysis", action="store_true")
+parser.add_argument("-v", help="increase verbosity (up to -vvv)", action="count")
+args = parser.parse_args()
+
 flash_image = bytearray([FLASH_FILL_BYTE] * FLASH_PADDED_SIZE)
 flash_image_fromWrites = bytearray([FLASH_FILL_BYTE] * FLASH_PADDED_SIZE)
 sfdp_image = bytearray([FLASH_FILL_BYTE] * FLASH_PADDED_SIZE)
@@ -270,18 +285,6 @@ i2c_write_addr = 0x00
 i2c_reads = 0
 i2c_writes = 0
 
-parser = argparse.ArgumentParser(description="sniffROM - Reconstructs flash memory contents and extracts other data from passively sniffed commands in a Saleae logic analyzer capture file. Currently supports SPI and I2C flash chips.")
-parser.add_argument("input_file", help="Saleae Logic SPI or I2C Analyzer Export File (.csv)")
-parser.add_argument("--addrlen", type=int, choices=[2,3,4], nargs="?", default=3, help="set length of SPI memory address in bytes (default: 3)")
-parser.add_argument("--endian", choices=["msb", "lsb"], nargs="?", default="msb", help="set endianness of SPI memory bytes (default: msb)")
-parser.add_argument("--filter", choices=["r", "w"], nargs="?", default="rw", help="analyze only Read or Write commands (default: both)")
-parser.add_argument("-o", nargs="?", default="output.bin", help="flash image output file name (default: output.bin)")
-parser.add_argument("--summary", help="print summary of sniffed commands and metadata", action="store_true")
-#parser.add_argument("--colors", help="output color codes", action="store_true")
-parser.add_argument("--data-map", help="show visual data map", action="store_true")
-parser.add_argument("--timing-plot", help="show timing analysis", action="store_true")
-parser.add_argument("-v", help="increase verbosity (up to -vvv)", action="count")
-args = parser.parse_args()
 
 
 try:
