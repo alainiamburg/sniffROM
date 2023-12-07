@@ -1,6 +1,7 @@
-**NOTE:** Saleae Logic version 2 breaks the built-in SPI analyzer export feature.
+**NOTE:** Saleae Logic version 2 breaks the built-in SPI analyzer export feature, meaning sniffROM currently only works with data exported from Logic version 1.x
 
-As of 12/6/2023 there is no word on whether this will ever be fixed, meaning sniffROM only works with version 1 for the foreseeable future :(
+As of 12/6/2023 it is unknown when this will be fixed.
+* https://discuss.saleae.com/t/logic-2-2-11/436/9
 * [Logic2 low-level analyzer export - transaction and packet missing](https://discuss.saleae.com/t/logic2-low-level-analyzer-export-transaction-and-packet-missing/1387)
 * [Packet ID always shows up as '0' in Logic 2 #12](https://github.com/saleae/i2c-analyzer/issues/12)
 
