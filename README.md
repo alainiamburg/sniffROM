@@ -1,5 +1,13 @@
+**NOTE:** Saleae Logic version 2 breaks the built-in SPI analyzer export feature.
+
+As of 12/6/2023 there is no word on whether this will ever be fixed, meaning sniffROM only works with version 1 for the foreseeable future :(
+* [Logic2 low-level analyzer export - transaction and packet missing](https://discuss.saleae.com/t/logic2-low-level-analyzer-export-transaction-and-packet-missing/1387)
+* [Packet ID always shows up as '0' in Logic 2 #12](https://github.com/saleae/i2c-analyzer/issues/12)
+
+
 # sniffROM
-A tool for passive data capture and reconnaissance of serial flash chips. It is used in conjunction with a Saleae logic analyzer to reconstruct flash memory contents and extract contextual information about device operations.
+
+A tool for passive data capture and reconnaissance of serial flash chips. It is used with a Saleae logic analyzer to reconstruct flash memory contents and extract contextual information about device operations.
 
 * Supports <b>SPI</b> and <b>I²C</b> flash chips.
 * Preserves the actual memory addresses of captured data.
